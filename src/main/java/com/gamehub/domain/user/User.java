@@ -19,6 +19,7 @@ public class User {
         USER
     }
 
+
     @Id // primary key
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false , updatable = false)
@@ -59,6 +60,10 @@ public class User {
     }
     @Column(nullable = false)
     private Instant updatedAt;
+
+    protected User(){
+
+    }
 
     public Long getUserId() {
         return userId;
