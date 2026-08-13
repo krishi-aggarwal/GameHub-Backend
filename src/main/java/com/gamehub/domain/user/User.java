@@ -65,6 +65,15 @@ public class User {
 
     }
 
+
+    public User(String username , String email , String passwordHash , String displayName , Role role){
+        this.username = username;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.displayName = displayName;
+        this.role = role;
+    }
+
     public Long getUserId() {
         return userId;
     }
