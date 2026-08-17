@@ -1,4 +1,4 @@
-package com.gamehub.Auth.dto;
+package com.gamehub.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
 
-    @NotBlank
+    @NotBlank //@NotBlank(message = "Username is required")
     @Size(max=25)
     private String username;
 

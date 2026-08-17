@@ -1,4 +1,4 @@
-package com.gamehub.Auth.exception;
+package com.gamehub.auth.exception;
 
 public class UsernameExistsException extends RuntimeException{
     public UsernameExistsException(String msg){

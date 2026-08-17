@@ -1,9 +1,9 @@
-package com.gamehub.Auth.service;
+package com.gamehub.auth.service;
 
-import com.gamehub.Auth.dto.RegisterRequest;
-import com.gamehub.Auth.dto.RegisterResponse;
-import com.gamehub.Auth.exception.EmailExistsException;
-import com.gamehub.Auth.exception.UsernameExistsException;
+import com.gamehub.auth.dto.RegisterRequest;
+import com.gamehub.auth.dto.RegisterResponse;
+import com.gamehub.auth.exception.EmailExistsException;
+import com.gamehub.auth.exception.UsernameExistsException;
 import com.gamehub.domain.user.User;
 import com.gamehub.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;

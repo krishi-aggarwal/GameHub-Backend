@@ -1,4 +1,4 @@
-package com.gamehub.Auth.dto;
+package com.gamehub.auth.dto;
 
 import com.gamehub.domain.user.User;
 

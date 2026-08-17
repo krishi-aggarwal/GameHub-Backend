@@ -10,8 +10,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder(){
-        BCryptPasswordEncoder encode = new BCryptPasswordEncoder();
+        //BCryptPasswordEncoder encode = new BCryptPasswordEncoder();
 
-        return encode;
+        return new BCryptPasswordEncoder();
     }
 }
