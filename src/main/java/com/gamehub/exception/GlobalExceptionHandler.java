@@ -5,9 +5,15 @@ import com.gamehub.auth.exception.UsernameExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.springframework.validation.BindingResultUtils.getBindingResult;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -42,6 +48,23 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
 
-        
+        List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors();
+        List<ValidationError> validationErrorList = new ArrayList<>();
+
+
+        for(FieldError err : fieldErrors){
+            validationErrorList.add(new ValidationError(err.getField(),err.getDefaultMessage()));
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Validation failed",
+                400,
+                request.getRequestURI(),
+                "Provide valid input"
+        );
+            errorResponse.setErrors(validationErrorList);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
     }
 }
