@@ -1,6 +1,7 @@
 package com.gamehub.exception;
 
 import com.gamehub.auth.exception.EmailExistsException;
+import com.gamehub.auth.exception.InvalidCredentialsException;
 import com.gamehub.auth.exception.UsernameExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,18 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Invalid Credentials",
+                401,
+                request.getRequestURI(),
+                "Invalid Username or password"
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

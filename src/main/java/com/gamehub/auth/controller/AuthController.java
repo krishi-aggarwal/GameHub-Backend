@@ -1,5 +1,7 @@
 package com.gamehub.auth.controller;
 
+import com.gamehub.auth.dto.LoginRequest;
+import com.gamehub.auth.dto.LoginResponse;
 import com.gamehub.auth.dto.RegisterRequest;
 import com.gamehub.auth.dto.RegisterResponse;
 import com.gamehub.auth.service.AuthService;
@@ -27,5 +29,14 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+            ){
+        LoginResponse response = authService.loginUser(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
