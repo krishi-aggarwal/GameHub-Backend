@@ -3,6 +3,7 @@ package com.gamehub.exception;
 import com.gamehub.auth.exception.EmailExistsException;
 import com.gamehub.auth.exception.InvalidCredentialsException;
 import com.gamehub.auth.exception.UsernameExistsException;
+import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -80,4 +81,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 
     }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                "User not Found",
+                404,
+                request.getRequestURI(),
+                "User not Found!"
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+
 }
