@@ -5,6 +5,7 @@ import com.gamehub.auth.dto.LoginResponse;
 import com.gamehub.auth.dto.RegisterRequest;
 import com.gamehub.auth.dto.RegisterResponse;
 import com.gamehub.auth.service.AuthService;
+import com.gamehub.mainDto.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,22 +22,30 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(
+    public ResponseEntity<ApiResponse> register(
             @Valid @RequestBody RegisterRequest request
             ){
         RegisterResponse response = authService.registerUser(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(new ApiResponse(
+                        "Registration Successfull!",
+                        response
+                ));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
+    public ResponseEntity<ApiResponse> login(
             @Valid @RequestBody LoginRequest request
             ){
         LoginResponse response = authService.loginUser(request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new ApiResponse(
+                        "Login Successfull!",
+                        response
+                ));
     }
 }
