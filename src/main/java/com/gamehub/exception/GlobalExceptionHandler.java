@@ -3,6 +3,8 @@ package com.gamehub.exception;
 import com.gamehub.auth.exception.EmailExistsException;
 import com.gamehub.auth.exception.InvalidCredentialsException;
 import com.gamehub.auth.exception.UsernameExistsException;
+import com.gamehub.game.exception.GameExistsException;
+import com.gamehub.game.exception.InvalidPlayerRangeException;
 import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -94,5 +96,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    @ExceptionHandler(GameExistsException.class)
+    public ResponseEntity<ErrorResponse> handleGameExists(GameExistsException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Game already exists",
+                409,
+                request.getRequestURI(),
+                "Game you are trying to input already exists"
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+    @ExceptionHandler(InvalidPlayerRangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPlayerRange(InvalidPlayerRangeException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Invalid Player Range",
+                410,
+                request.getRequestURI(),
+                "Minimum players cannot be greater than maximum players"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
 
 }

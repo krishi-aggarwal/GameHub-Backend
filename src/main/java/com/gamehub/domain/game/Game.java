@@ -48,4 +48,74 @@ public class Game {
     }
     @Column(nullable = false)
     private Instant updatedAt;
+
+    public Long getGameId() {
+        return gameId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public int getMinPlayers() {
+        return minPlayers;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public GameType getGameType() {
+        return gameType;
+    }
+
+    public GameStatus getStatus() {
+        return status;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    protected Game(){
+
+    }
+
+    public static Game create(
+            String name,
+            String slug,
+            String description,
+            Integer minPlayers,
+            Integer maxPlayers,
+            GameType gameType,
+            String thumbnailUrl
+    ) {
+        Game g = new Game();
+        g.name=name;
+        g.slug=slug;
+        g.description=description;
+        g.minPlayers=minPlayers;
+        g.maxPlayers=maxPlayers;
+        g.gameType=gameType;
+        g.thumbnailUrl=thumbnailUrl;
+        g.status = GameStatus.COMING_SOON;
+
+        return g;
+    }
 }

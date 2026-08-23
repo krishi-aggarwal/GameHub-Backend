@@ -2,8 +2,6 @@ package com.gamehub.domain.user;
 
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 
@@ -78,25 +76,8 @@ public class User {
         return userId;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
     public String getUsername() {
         return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash)
-    {
-        this.passwordHash = passwordHash;
     }
 
     public String getEmail() {
@@ -109,10 +90,6 @@ public class User {
 
     public Role getRole() {
         return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 
     public String getDisplayName() {
@@ -131,24 +108,15 @@ public class User {
         this.avatarUrl = avatarUrl;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
+    public String getPasswordHashForAuthentication() {
+        return passwordHash;
     }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public Instant getUpdatedAt() {
         return updatedAt;
     }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-
-
-
-
 }

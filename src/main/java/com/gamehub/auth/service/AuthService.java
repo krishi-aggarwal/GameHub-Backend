@@ -65,7 +65,7 @@ public class AuthService {
 
         if (!passwordEncoder.matches(
                 request.getPassword(),
-                user.getPasswordHash())) {
+                user.getPasswordHashForAuthentication())) {
 
             throw new InvalidCredentialsException(
                     "Invalid Username or password"
