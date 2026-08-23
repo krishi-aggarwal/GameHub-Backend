@@ -4,6 +4,7 @@ import com.gamehub.auth.exception.EmailExistsException;
 import com.gamehub.auth.exception.InvalidCredentialsException;
 import com.gamehub.auth.exception.UsernameExistsException;
 import com.gamehub.game.exception.GameExistsException;
+import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.game.exception.InvalidPlayerRangeException;
 import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -114,6 +115,18 @@ public class GlobalExceptionHandler {
                 410,
                 request.getRequestURI(),
                 "Minimum players cannot be greater than maximum players"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(GameNotExistsException.class)
+    public ResponseEntity<ErrorResponse> handleGameNotExits(GameNotExistsException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                "Game not Exists",
+                410,
+                request.getRequestURI(),
+                "Game not Found!"
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
