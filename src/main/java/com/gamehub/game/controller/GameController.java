@@ -48,4 +48,11 @@ public class GameController {
         return ResponseEntity.ok(gameService.getGameById(gameId));
     }
 
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<GameResponse> getGameBySlug(
+            @PathVariable String slug
+    ) {
+        return ResponseEntity.ok(gameService.getGameBySlug(slug));
+    }
+
 }

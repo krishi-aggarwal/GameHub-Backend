@@ -99,6 +99,12 @@ public class GameService {
 //        return toResponse(game);
 //    }
 
+    public GameResponse getGameBySlug(String slug){
+        Game game = gameRepository.findBySlug(slug)
+                .orElseThrow(()->new GameNotExistsException("Game not Found!"));
+        return toResponse(game);
+    }
+
 
 
 }
