@@ -7,6 +7,7 @@ import com.gamehub.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import tools.jackson.databind.ObjectMapper;
 
@@ -56,12 +58,23 @@ public class SecurityConfig {
                 // Define which endpoints require authentication.
                 .authorizeHttpRequests(auth -> auth
 
-                        // Registration and login are public.
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Every other endpoint requires authentication.
+                        .requestMatchers(HttpMethod.POST, "/api/games")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.PUT, "/api/games/**")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/games/**")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers("/error").permitAll()
+
                         .anyRequest().authenticated()
                 )
+
+
 
                 // If a protected endpoint is accessed without
                 // valid authentication, Spring Security calls
@@ -69,7 +82,7 @@ public class SecurityConfig {
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(
                                 authenticationEntryPoint()
-                        )
+                        ).accessDeniedHandler(accessDeniedHandler())
                 )
 
                 // Run our JWT filter before Spring's
@@ -106,6 +119,29 @@ public class SecurityConfig {
             );
 
             // Convert ErrorResponse object into JSON.
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            response.getWriter().write(
+                    objectMapper.writeValueAsString(errorResponse)
+            );
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+
+        return (request, response, accessDeniedException) -> {
+
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "Forbidden",
+                    403,
+                    request.getRequestURI(),
+                    "You do not have permission to access this resource."
+            );
+
             ObjectMapper objectMapper = new ObjectMapper();
 
             response.getWriter().write(

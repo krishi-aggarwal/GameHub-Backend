@@ -2,9 +2,11 @@ package com.gamehub.game.service;
 
 import com.gamehub.domain.game.Game;
 
+import com.gamehub.domain.game.GameType;
 import com.gamehub.domain.user.User;
 import com.gamehub.game.dto.CreateGameRequest;
 import com.gamehub.game.dto.GameResponse;
+import com.gamehub.game.dto.UpdateGameRequest;
 import com.gamehub.game.exception.GameExistsException;
 import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.game.exception.InvalidPlayerRangeException;
@@ -103,6 +105,42 @@ public class GameService {
         Game game = gameRepository.findBySlug(slug)
                 .orElseThrow(()->new GameNotExistsException("Game not Found!"));
         return toResponse(game);
+    }
+
+    public GameResponse updateGame(Long gameId , UpdateGameRequest request){
+        Optional<Game> gameOptional = gameRepository.findById(gameId);
+
+        if(gameOptional.isEmpty()){
+            throw new GameNotExistsException("Game not Found!");
+        }
+
+        if (request.getMinPlayers() > request.getMaxPlayers()) {
+            throw new InvalidPlayerRangeException(
+                    "Minimum players cannot be greater than maximum players"
+            );
+        }
+
+        Game game = gameOptional.get();
+
+        game.updateDetails(
+                request.getName(),
+                request.getDescription(),
+                request.getMinPlayers(),
+                request.getMaxPlayers(),
+                request.getThumbnailUrl()
+        );
+
+        Game updatedGame = gameRepository.save(game);
+
+        return toResponse(updatedGame);
+    }
+
+    public void deleteGame(Long gameId) {
+        if (!gameRepository.existsById(gameId)) {
+            throw new GameNotExistsException("Game not Found!");
+        }
+
+        gameRepository.deleteById(gameId);
     }
 
 

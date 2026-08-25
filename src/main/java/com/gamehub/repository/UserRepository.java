@@ -14,4 +14,7 @@ public interface UserRepository extends JpaRepository<User , Long> {
 
     //login
     Optional<User> findByUsername(String username);
+
+    //admin
+    boolean existsByRole(User.Role role);
 }

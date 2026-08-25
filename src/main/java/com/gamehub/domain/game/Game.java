@@ -118,4 +118,18 @@ public class Game {
 
         return g;
     }
+
+    public void updateDetails(
+            String name,
+            String description,
+            int minPlayers,
+            int maxPlayers,
+            String thumbnailUrl
+    ) {
+        this.name = name;
+        this.description = description;
+        this.minPlayers = minPlayers;
+        this.maxPlayers = maxPlayers;
+        this.thumbnailUrl = thumbnailUrl;
+    }
 }
