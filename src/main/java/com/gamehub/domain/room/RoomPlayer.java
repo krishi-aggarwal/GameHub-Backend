@@ -1,6 +1,7 @@
 package com.gamehub.domain.room;
 
 import com.gamehub.domain.user.User;
+import com.gamehub.room.dto.RoomResponse;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -27,5 +28,28 @@ public class RoomPlayer {
     }
     @Column(nullable = false)
     private Instant joinedAt;
+
+    public GameRoom getRoom() {
+        return room;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Long getRoomPlayerId() {
+        return roomPlayerId;
+    }
+
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
+
+    public static RoomPlayer create(GameRoom gameRoom, User user){
+        RoomPlayer roomPLayer = new RoomPlayer();
+        roomPLayer.room = gameRoom;
+        roomPLayer.user = user;
+        return roomPLayer;
+    }
 
 }

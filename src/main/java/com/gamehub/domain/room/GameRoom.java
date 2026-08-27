@@ -37,6 +37,7 @@ public class GameRoom {
 
     @OneToMany(mappedBy = "room")
     private List<RoomPlayer> players = new ArrayList<>();
+
     @PrePersist
     private void onCreate() {
         Instant now = Instant.now();
@@ -44,6 +45,42 @@ public class GameRoom {
         updatedAt = now;
     }
     private Instant createdAt;
+
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public String getRoomCode() {
+        return roomCode;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    public RoomStatus getRoomStatus() {
+        return roomStatus;
+    }
+
+    public User getHost() {
+        return host;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public List<RoomPlayer> getPlayers() {
+        return players;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 
     @PreUpdate
     private void onUpdate() {
