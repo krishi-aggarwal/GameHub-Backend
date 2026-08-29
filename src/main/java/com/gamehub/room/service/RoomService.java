@@ -1,6 +1,7 @@
 package com.gamehub.room.service;
 
 import com.gamehub.domain.game.Game;
+import com.gamehub.domain.game.GameStatus;
 import com.gamehub.domain.room.GameRoom;
 import com.gamehub.domain.room.RoomPlayer;
 import com.gamehub.domain.room.RoomStatus;
@@ -11,12 +12,21 @@ import com.gamehub.repository.GameRepository;
 import com.gamehub.repository.GameRoomRepository;
 import com.gamehub.repository.RoomPlayerRepository;
 import com.gamehub.room.dto.CreateRoomRequest;
+import com.gamehub.room.dto.RoomPlayerResponse;
 import com.gamehub.room.dto.RoomResponse;
+import com.gamehub.room.exception.PlayerAlreadyInRoomException;
+import com.gamehub.room.exception.RoomFullException;
+import com.gamehub.room.exception.RoomNotExistsException;
+import com.gamehub.room.exception.RoomNotWaitingException;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class RoomService {
@@ -71,7 +81,13 @@ public class RoomService {
         GameRoom savedGameRoom = gameRoomRepository.save(gameRoom);
 
         RoomPlayer roomPlayer = RoomPlayer.create(savedGameRoom , host);
-        roomPlayerRepository.save(roomPlayer);
+        RoomPlayer savedRoomPlayer = roomPlayerRepository.save(roomPlayer);
+
+        RoomPlayerResponse roomPlayerResponse = new RoomPlayerResponse();
+
+        roomPlayerResponse.setUsername(host.getUsername());
+        roomPlayerResponse.setJoinedAt(savedRoomPlayer.getJoinedAt());
+
         RoomResponse response = new RoomResponse();
 
         response.setRoomId(savedGameRoom.getRoomId());
@@ -82,6 +98,59 @@ public class RoomService {
         response.setRoomStatus(savedGameRoom.getRoomStatus());
         response.setMaxPlayers(savedGameRoom.getMaxPlayers());
         response.setPlayerCount(1);
+        response.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
+
+        return response;
+    }
+
+    public List<RoomPlayerResponse> toRoomPlayerResponseList (List<RoomPlayer> roomPlayers){
+        List<RoomPlayerResponse> responses = new ArrayList<>();
+
+        for(RoomPlayer r : roomPlayers){
+            RoomPlayerResponse res = new RoomPlayerResponse();
+            res.setUsername(r.getUser().getUsername());
+            res.setJoinedAt(r.getJoinedAt());
+            responses.add(res);
+        }
+
+        return responses;
+    }
+
+    @Transactional
+    public RoomResponse joinRoom(String roomCode){
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(()->new RoomNotExistsException("Room not Exists"));
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if(gameRoom.getRoomStatus() != RoomStatus.WAITING)
+            throw new RoomNotWaitingException(("Cannot Join Room, Room may got started"));
+
+        int currentPlayers = roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode());
+
+        if((gameRoom.getMaxPlayers() <= currentPlayers)){
+            throw new RoomFullException("Room is Full!");
+        }
+
+        if(roomPlayerRepository.existsByRoomAndUser(gameRoom,user)){
+            throw new PlayerAlreadyInRoomException("you have already joined this room");
+        }
+
+        RoomPlayer roomPlayer = RoomPlayer.create(
+                gameRoom , user
+        );
+        RoomPlayer savedRoomPlayer = roomPlayerRepository.save(roomPlayer);
+
+        RoomResponse response = new RoomResponse();
+        response.setRoomId(gameRoom.getRoomId());
+        response.setRoomCode(gameRoom.getRoomCode());
+        response.setGameId(gameRoom.getGame().getGameId());
+        response.setGameName(gameRoom.getGame().getName());
+        response.setHostUsername(gameRoom.getHost().getUsername());
+        response.setRoomStatus(gameRoom.getRoomStatus());
+        response.setMaxPlayers(gameRoom.getMaxPlayers());
+        response.setPlayerCount(currentPlayers+1);
+        response.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
 
         return response;
     }

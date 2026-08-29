@@ -29,4 +29,16 @@ public class RoomController {
         );
     }
 
+    @PostMapping("/{roomCode}/join")
+    public ResponseEntity<ApiResponse<RoomResponse>> joinRoom(
+            @PathVariable String roomCode
+    ){
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "Joined Room!",
+                        roomService.joinRoom(roomCode)
+                )
+        );
+    }
+
 }

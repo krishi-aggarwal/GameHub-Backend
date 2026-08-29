@@ -2,6 +2,9 @@ package com.gamehub.room.dto;
 
 import com.gamehub.domain.room.RoomStatus;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RoomResponse {
     private Long roomId;
     private String roomCode;
@@ -11,6 +14,15 @@ public class RoomResponse {
     private RoomStatus roomStatus;
     private int maxPlayers;
     private int playerCount;
+    private List<RoomPlayerResponse> players = new ArrayList<>();
+
+    public List<RoomPlayerResponse> getPlayers() {
+        return players;
+    }
+
+    public void setPlayers(List<RoomPlayerResponse> players) {
+        this.players = players;
+    }
 
     public Long getRoomId() {
         return roomId;

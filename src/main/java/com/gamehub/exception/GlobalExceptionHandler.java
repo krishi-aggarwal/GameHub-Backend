@@ -6,6 +6,10 @@ import com.gamehub.auth.exception.UsernameExistsException;
 import com.gamehub.game.exception.GameExistsException;
 import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.game.exception.InvalidPlayerRangeException;
+import com.gamehub.room.exception.PlayerAlreadyInRoomException;
+import com.gamehub.room.exception.RoomFullException;
+import com.gamehub.room.exception.RoomNotExistsException;
+import com.gamehub.room.exception.RoomNotWaitingException;
 import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -108,6 +112,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
+
     @ExceptionHandler(InvalidPlayerRangeException.class)
     public ResponseEntity<ErrorResponse> handleInvalidPlayerRange(InvalidPlayerRangeException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
@@ -121,7 +126,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(GameNotExistsException.class)
-    public ResponseEntity<ErrorResponse> handleGameNotExits(GameNotExistsException ex , HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleGameNotExists(GameNotExistsException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
                 "Game not Exists",
                 410,
@@ -132,4 +137,52 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(RoomNotExistsException.class)
+    public ResponseEntity<ErrorResponse> handleRoomNotExists(RoomNotExistsException ex , HttpServletRequest request){
+    ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            404,
+            request.getRequestURI(),
+        "Room not Exists!"
+    );
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(RoomNotWaitingException.class)
+    public ResponseEntity<ErrorResponse> handleRoomNotWaiting(RoomNotWaitingException ex , HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                410,
+                request.getRequestURI(),
+                "Cant join Room"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(RoomFullException.class)
+    public ResponseEntity<ErrorResponse> handleRoomFull(RoomFullException ex , HttpServletRequest req){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                410,
+                req.getRequestURI(),
+                "Cant join room"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(PlayerAlreadyInRoomException.class)
+    public ResponseEntity<ErrorResponse> handlePlayerAlreadyInRoom(
+            PlayerAlreadyInRoomException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                410,
+                request.getRequestURI(),
+                "Cant Join Room"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
 }
