@@ -152,6 +152,7 @@ public class RoomService {
         return response;
     }
 
+    @Transactional
     public void leaveRoom(String roomCode){
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
                 .orElseThrow(()-> new RoomNotExistsException("Room not found"));
@@ -163,9 +164,19 @@ public class RoomService {
 
         roomPlayerRepository.delete(roomPlayer);
 
+        if(user.getUserId().equals(gameRoom.getHost().getUserId())){
 
+            int remainingPlayers = roomPlayerRepository.countByRoom_RoomCode(roomCode);
+            if(remainingPlayers > 0){
+                RoomPlayer EarliestRoomPlayer = roomPlayerRepository.findFirstByRoomOrderByJoinedAtAsc(gameRoom)
+                        .orElseThrow(()-> new PlayerNotInRoomException("Something went wrong"));
 
-
+                gameRoom.changeHost(EarliestRoomPlayer.getUser());
+            }
+            else{
+                gameRoomRepository.delete(gameRoom);
+            }
+        }
 
     }
 }

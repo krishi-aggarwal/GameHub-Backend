@@ -48,8 +48,10 @@ public class RoomController {
     ){
         roomService.leaveRoom(roomCode);
         return ResponseEntity.ok(
-                new ApiResponse<>("Leaved Room!",null)
+                new ApiResponse<>("Left Room!",null)
         );
     }
+
+
 
 }

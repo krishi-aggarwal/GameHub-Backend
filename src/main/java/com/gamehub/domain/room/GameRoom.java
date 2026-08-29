@@ -107,4 +107,8 @@ public class GameRoom {
 
         return room;
     }
+
+    public void changeHost(User user) {
+        this.host = user;
+    }
 }
