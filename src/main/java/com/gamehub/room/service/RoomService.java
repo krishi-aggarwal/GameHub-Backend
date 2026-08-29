@@ -14,10 +14,7 @@ import com.gamehub.repository.RoomPlayerRepository;
 import com.gamehub.room.dto.CreateRoomRequest;
 import com.gamehub.room.dto.RoomPlayerResponse;
 import com.gamehub.room.dto.RoomResponse;
-import com.gamehub.room.exception.PlayerAlreadyInRoomException;
-import com.gamehub.room.exception.RoomFullException;
-import com.gamehub.room.exception.RoomNotExistsException;
-import com.gamehub.room.exception.RoomNotWaitingException;
+import com.gamehub.room.exception.*;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.security.core.Authentication;
@@ -153,5 +150,22 @@ public class RoomService {
         response.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
 
         return response;
+    }
+
+    public void leaveRoom(String roomCode){
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(()-> new RoomNotExistsException("Room not found"));
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        RoomPlayer roomPlayer = roomPlayerRepository.findByRoomAndUser(gameRoom,user)
+                .orElseThrow(()-> new PlayerNotInRoomException("you are not in the room"));
+
+        roomPlayerRepository.delete(roomPlayer);
+
+
+
+
+
     }
 }

@@ -15,5 +15,6 @@ public interface RoomPlayerRepository extends JpaRepository<RoomPlayer,Long> {
     int countByRoom_RoomCode(String roomCode);
     List<RoomPlayer> findByRoom(GameRoom gameRoom);
     boolean existsByRoomAndUser(GameRoom gameRoom , User user);
+    Optional<RoomPlayer> findByRoomAndUser(GameRoom gameRoom , User user);
 }
 

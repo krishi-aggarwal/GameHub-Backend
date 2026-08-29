@@ -6,10 +6,7 @@ import com.gamehub.auth.exception.UsernameExistsException;
 import com.gamehub.game.exception.GameExistsException;
 import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.game.exception.InvalidPlayerRangeException;
-import com.gamehub.room.exception.PlayerAlreadyInRoomException;
-import com.gamehub.room.exception.RoomFullException;
-import com.gamehub.room.exception.RoomNotExistsException;
-import com.gamehub.room.exception.RoomNotWaitingException;
+import com.gamehub.room.exception.*;
 import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -181,6 +178,22 @@ public class GlobalExceptionHandler {
                 410,
                 request.getRequestURI(),
                 "Cant Join Room"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+
+    @ExceptionHandler(PlayerNotInRoomException.class)
+    public ResponseEntity<ErrorResponse> handlePlayerNotInRoom(
+            PlayerNotInRoomException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                410,
+                request.getRequestURI(),
+                "Player not in the Room"
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
