@@ -3,11 +3,14 @@ package com.gamehub.room.controller;
 import com.gamehub.mainDto.ApiResponse;
 import com.gamehub.room.dto.CreateRoomRequest;
 import com.gamehub.room.dto.RoomResponse;
+import com.gamehub.room.dto.RoomSummaryResponse;
 import com.gamehub.room.service.RoomService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -49,6 +52,21 @@ public class RoomController {
         roomService.leaveRoom(roomCode);
         return ResponseEntity.ok(
                 new ApiResponse<>("Left Room!",null)
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<List<RoomSummaryResponse>> getAllRooms(){
+        return ResponseEntity.ok(roomService.getAllRooms());
+    }
+
+    @GetMapping("/{roomCode}")
+    public ResponseEntity<RoomResponse> getRoomDetail(
+            @PathVariable String roomCode
+    )
+    {
+        return ResponseEntity.ok(
+                roomService.getRoom(roomCode)
         );
     }
 

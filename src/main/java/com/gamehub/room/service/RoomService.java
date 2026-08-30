@@ -14,6 +14,7 @@ import com.gamehub.repository.RoomPlayerRepository;
 import com.gamehub.room.dto.CreateRoomRequest;
 import com.gamehub.room.dto.RoomPlayerResponse;
 import com.gamehub.room.dto.RoomResponse;
+import com.gamehub.room.dto.RoomSummaryResponse;
 import com.gamehub.room.exception.*;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
@@ -177,6 +178,50 @@ public class RoomService {
                 gameRoomRepository.delete(gameRoom);
             }
         }
-
     }
+
+    public List<RoomSummaryResponse> getAllRooms() {
+
+        List<RoomSummaryResponse> responses = new ArrayList<>();
+
+        List<GameRoom> gameRoomList =
+                gameRoomRepository.findAvailableRooms(RoomStatus.WAITING);
+
+        for (GameRoom gameRoom : gameRoomList) {
+
+            RoomSummaryResponse response = new RoomSummaryResponse();
+
+            response.setGameId(gameRoom.getGame().getGameId());
+            response.setRoomCode(gameRoom.getRoomCode());
+            response.setRoomId(gameRoom.getRoomId());
+            response.setRoomStatus(gameRoom.getRoomStatus());
+            response.setGameName(gameRoom.getGame().getName());
+            response.setHostUsername(gameRoom.getHost().getUsername());
+            response.setMaxPlayers(gameRoom.getMaxPlayers());
+            response.setPlayerCount(roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode()));
+
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    public RoomResponse getRoom(String roomCode){
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(()-> new RoomNotExistsException("Room not Found!"));
+
+        RoomResponse roomResponse = new RoomResponse();
+        roomResponse.setRoomId(gameRoom.getRoomId());
+        roomResponse.setGameId(gameRoom.getGame().getGameId());
+        roomResponse.setRoomStatus(gameRoom.getRoomStatus());
+        roomResponse.setPlayerCount(roomPlayerRepository.countByRoom_RoomCode(roomCode));
+        roomResponse.setRoomCode(gameRoom.getRoomCode());
+        roomResponse.setHostUsername(gameRoom.getHost().getUsername());
+        roomResponse.setMaxPlayers(gameRoom.getMaxPlayers());
+        roomResponse.setGameName(gameRoom.getGame().getName());
+        roomResponse.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
+
+        return roomResponse;
+    }
+
 }
