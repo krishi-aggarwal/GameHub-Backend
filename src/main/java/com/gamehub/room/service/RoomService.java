@@ -11,13 +11,11 @@ import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.repository.GameRepository;
 import com.gamehub.repository.GameRoomRepository;
 import com.gamehub.repository.RoomPlayerRepository;
-import com.gamehub.room.dto.CreateRoomRequest;
-import com.gamehub.room.dto.RoomPlayerResponse;
-import com.gamehub.room.dto.RoomResponse;
-import com.gamehub.room.dto.RoomSummaryResponse;
+import com.gamehub.room.dto.*;
 import com.gamehub.room.exception.*;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -31,15 +29,18 @@ public class RoomService {
     private final GameRoomRepository gameRoomRepository;
     private final GameRepository gameRepository;
     private final RoomPlayerRepository roomPlayerRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public RoomService(
             GameRoomRepository gameRoomRepository,
             GameRepository gameRepository,
-            RoomPlayerRepository roomPlayerRepository
+            RoomPlayerRepository roomPlayerRepository,
+            SimpMessagingTemplate messagingTemplate
     ) {
         this.gameRoomRepository = gameRoomRepository;
         this.gameRepository = gameRepository;
         this.roomPlayerRepository = roomPlayerRepository;
+        this.messagingTemplate=messagingTemplate;
     }
 
     private String generateRoomCode() {
@@ -150,11 +151,22 @@ public class RoomService {
         response.setPlayerCount(currentPlayers+1);
         response.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
 
+        RoomEvent event = new RoomEvent(
+                "PLAYER_JOINED",
+                response
+        );
+
+        messagingTemplate.convertAndSend(
+                "/topic/rooms/"+roomCode,
+                event
+        );
         return response;
     }
 
     @Transactional
     public void leaveRoom(String roomCode){
+
+        boolean roomDeleted = false;
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
                 .orElseThrow(()-> new RoomNotExistsException("Room not found"));
 
@@ -169,15 +181,52 @@ public class RoomService {
 
             int remainingPlayers = roomPlayerRepository.countByRoom_RoomCode(roomCode);
             if(remainingPlayers > 0){
-                RoomPlayer EarliestRoomPlayer = roomPlayerRepository.findFirstByRoomOrderByJoinedAtAsc(gameRoom)
+                RoomPlayer earliestRoomPlayer = roomPlayerRepository.findFirstByRoomOrderByJoinedAtAsc(gameRoom)
                         .orElseThrow(()-> new PlayerNotInRoomException("Something went wrong"));
 
-                gameRoom.changeHost(EarliestRoomPlayer.getUser());
+                gameRoom.changeHost(earliestRoomPlayer.getUser());
             }
             else{
                 gameRoomRepository.delete(gameRoom);
+                roomDeleted = true;
             }
         }
+
+        if(!roomDeleted){
+            RoomResponse roomResponse = new RoomResponse();
+
+            roomResponse.setGameId(gameRoom.getGame().getGameId());
+            roomResponse.setRoomCode(gameRoom.getRoomCode());
+            roomResponse.setRoomStatus(gameRoom.getRoomStatus());
+            roomResponse.setGameName(gameRoom.getGame().getName());
+            roomResponse.setMaxPlayers(gameRoom.getMaxPlayers());
+            roomResponse.setHostUsername(gameRoom.getHost().getUsername());
+            roomResponse.setRoomId(gameRoom.getRoomId());
+            roomResponse.setPlayerCount(roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode()));
+            roomResponse.setPlayers(toRoomPlayerResponseList(roomPlayerRepository.findByRoom(gameRoom)));
+
+            RoomEvent event = new RoomEvent(
+                    "PLAYER_LEFT",
+                    roomResponse
+            );
+
+            messagingTemplate.convertAndSend(
+                    "/topic/rooms/"+roomCode,
+                    event
+            );
+        }
+        else{
+            RoomEvent event = new RoomEvent(
+                    "ROOM_CLOSED",
+                    null
+            );
+
+            messagingTemplate.convertAndSend(
+                    "/topic/rooms/"+roomCode,
+                    event
+            );
+        }
+
     }
 
     public List<RoomSummaryResponse> getAllRooms() {
