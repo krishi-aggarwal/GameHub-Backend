@@ -5,9 +5,13 @@ import com.gamehub.domain.room.GameRoom;
 import com.gamehub.domain.room.RoomPlayer;
 import com.gamehub.domain.room.RoomStatus;
 import com.gamehub.domain.user.User;
+import com.gamehub.game.deception.domain.DeceptionGameConfig;
+import com.gamehub.game.deception.domain.DeceptionRole;
 import com.gamehub.game.deception.domain.GamePlayer;
 import com.gamehub.game.deception.domain.GameSession;
+import com.gamehub.game.deception.dto.StartGameRequest;
 import com.gamehub.game.exception.InsufficientPlayersException;
+import com.gamehub.game.exception.InvalidPlayerCountException;
 import com.gamehub.game.exception.UnauthorizedException;
 import com.gamehub.repository.GameRoomRepository;
 import com.gamehub.repository.RoomPlayerRepository;
@@ -22,13 +26,19 @@ import java.util.List;
 public class DeceptionGameService {
     private final GameRoomRepository gameRoomRepository;
     private final RoomPlayerRepository roomPlayerRepository;
+    private final RoleAssignmentService roleAssignmentService;
+    private final GameSessionRegistry gameSessionRegistry;
 
     public DeceptionGameService(
             GameRoomRepository gameRoomRepository,
-            RoomPlayerRepository roomPlayerRepository
+            RoomPlayerRepository roomPlayerRepository,
+            RoleAssignmentService roleAssignmentService,
+            GameSessionRegistry gameSessionRegistry
     ){
         this.gameRoomRepository=gameRoomRepository;
         this.roomPlayerRepository = roomPlayerRepository;
+        this.roleAssignmentService=roleAssignmentService;
+        this.gameSessionRegistry=gameSessionRegistry;
     }
 
 
@@ -46,9 +56,12 @@ public class DeceptionGameService {
         return gamePlayerList;
     }
 
-    public void startGame(String roomCode , User user){
+    public void startGame(String roomCode,
+                          User user,
+                          StartGameRequest request
+                          ){
 
-        //check room
+        //find room
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode)
                 .orElseThrow(()-> new RoomNotExistsException("Room not Found!"));
 
@@ -57,24 +70,42 @@ public class DeceptionGameService {
             throw new UnauthorizedException("Unauthorized Access");
         }
 
-        //check room-status
+        //check room-status as waiting
         if(gameRoom.getRoomStatus()!= RoomStatus.WAITING){
             throw new RoomNotWaitingException("Room may got started!");
         }
 
+
+
         //check min players to start the game
-        if((roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode()) < 5)){
-            throw new InsufficientPlayersException("Need Minimum 5 Players to Start the Game!");
+        int playerCount = roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode());
+        if((playerCount < 4)){
+            throw new InsufficientPlayersException("Need Minimum 4 Players to Start the Game!");
         }
 
-        GameSession gameSession = new GameSession(gameRoom);
+        if((playerCount > 15)){
+            throw new InvalidPlayerCountException("Maximum Players Limit is 15");
+        }
 
-        for(GamePlayer gamePlayer : toGamePlayerList(roomPlayerRepository.findByRoom(gameRoom))){
+        DeceptionGameConfig deceptionGameConfig = new DeceptionGameConfig(request.getSelectedRoles());
+        //create game session
+        GameSession gameSession = new GameSession(gameRoom,deceptionGameConfig);
+
+        //convert roomplayers to gameplayers
+        List<GamePlayer> gamePlayerList = toGamePlayerList(roomPlayerRepository.findByRoom(gameRoom));
+
+        for(GamePlayer gamePlayer : gamePlayerList){
             gameSession.addPlayer(gamePlayer);
         }
 
 
+        List<DeceptionRole> deceptionRoleList = roleAssignmentService.calculateRoles(gamePlayerList,deceptionGameConfig);
 
+
+        roleAssignmentService.allocateRoles(deceptionRoleList,gamePlayerList);
+        gameSessionRegistry.storeSession(gameSession);
+        gameRoom.setRoomStatus(RoomStatus.IN_PROGRESS);
+        gameRoomRepository.save(gameRoom);
 
     }
 

@@ -20,6 +20,10 @@ public class GameSession {
         this.deceptionGameConfig=deceptionGameConfig;
     }
 
+    public UUID getSessionId(){
+        return sessionId;
+    }
+
     public void addPlayer(GamePlayer player){
         players.put(player.getUser().getUserId() , player);
     }

@@ -256,5 +256,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(InvalidPlayerCountException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPlayerCount(
+            InvalidPlayerCountException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                400,
+                request.getRequestURI(),
+                "InvalidPlayerCount"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+
+
+
 
 }

@@ -70,7 +70,7 @@ public class RoleAssignmentService {
         }
 
         for(int i=0 ; i<deceptionRoleList.size() ; i++){
-            gamePlayerList.get(i).setRole(deceptionRoleList.get(i));
+            gamePlayerList.get(i).assignRole(deceptionRoleList.get(i));
         }
     }
 }

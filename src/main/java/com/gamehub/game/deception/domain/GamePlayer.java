@@ -21,9 +21,7 @@ public class GamePlayer {
 
     private boolean isAlive;
 
-    public void setRole(DeceptionRole role) {
-        this.role = role;
-    }
+
 
     public void setAlive(boolean alive) {
         isAlive = alive;

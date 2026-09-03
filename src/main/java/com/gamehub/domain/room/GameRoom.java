@@ -33,6 +33,14 @@ public class GameRoom {
     @Column(nullable = false)
     private RoomStatus roomStatus;
 
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
+    }
+
+    public void setRoomStatus(RoomStatus roomStatus) {
+        this.roomStatus = roomStatus;
+    }
+
     private int maxPlayers;
 
     @OneToMany(mappedBy = "room")
