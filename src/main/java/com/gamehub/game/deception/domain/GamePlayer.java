@@ -51,6 +51,10 @@ public class GamePlayer {
         this.user = user;
     }
 
+    public void assignRole(DeceptionRole role){
+        this.role = role;
+    }
+
 
 }
 

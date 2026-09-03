@@ -225,4 +225,36 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
+
+    @ExceptionHandler(RoleAllocationException.class)
+    public ResponseEntity<ErrorResponse> handleRoleAllocation(
+            RoleAllocationException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                500,
+                request.getRequestURI(),
+                "RoleAllocation Error"
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidRoleConfigurationException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRoleConfiguration(
+            InvalidRoleConfigurationException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                400,
+                request.getRequestURI(),
+                "InvalidRoleConfiguration Error"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+
 }

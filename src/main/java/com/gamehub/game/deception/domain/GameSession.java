@@ -13,9 +13,11 @@ public class GameSession {
     private Map<Long,GamePlayer> players = new HashMap<>();
     private GamePhase gamePhase = GamePhase.NIGHT;
     private int roundNumber = 1;
+    private DeceptionGameConfig deceptionGameConfig;
 
-    public GameSession(GameRoom gameRoom){
+    public GameSession(GameRoom gameRoom , DeceptionGameConfig deceptionGameConfig){
         this.gameRoom=gameRoom;
+        this.deceptionGameConfig=deceptionGameConfig;
     }
 
     public void addPlayer(GamePlayer player){
