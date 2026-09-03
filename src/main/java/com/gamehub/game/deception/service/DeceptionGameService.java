@@ -10,6 +10,7 @@ import com.gamehub.game.deception.domain.DeceptionRole;
 import com.gamehub.game.deception.domain.GamePlayer;
 import com.gamehub.game.deception.domain.GameSession;
 import com.gamehub.game.deception.dto.StartGameRequest;
+import com.gamehub.game.deception.dto.StartGameResponse;
 import com.gamehub.game.exception.InsufficientPlayersException;
 import com.gamehub.game.exception.InvalidPlayerCountException;
 import com.gamehub.game.exception.UnauthorizedException;
@@ -56,9 +57,9 @@ public class DeceptionGameService {
         return gamePlayerList;
     }
 
-    public void startGame(String roomCode,
-                          User user,
-                          StartGameRequest request
+    public StartGameResponse startGame(String roomCode,
+                                       User user,
+                                       StartGameRequest request
                           ){
 
         //find room
@@ -106,7 +107,7 @@ public class DeceptionGameService {
         gameSessionRegistry.storeSession(gameSession);
         gameRoom.setRoomStatus(RoomStatus.IN_PROGRESS);
         gameRoomRepository.save(gameRoom);
-
+        return new StartGameResponse(gameSession.getSessionId());
     }
 
 }
