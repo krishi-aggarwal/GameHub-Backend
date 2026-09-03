@@ -270,6 +270,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(GameSessionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleGameSessionNotFound(
+            GameSessionNotFoundException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                404,
+                request.getRequestURI(),
+                "GameSessionNotFound"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
 
 
 
