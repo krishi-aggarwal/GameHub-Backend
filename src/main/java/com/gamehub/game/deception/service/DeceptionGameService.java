@@ -5,14 +5,8 @@ import com.gamehub.domain.room.GameRoom;
 import com.gamehub.domain.room.RoomPlayer;
 import com.gamehub.domain.room.RoomStatus;
 import com.gamehub.domain.user.User;
-import com.gamehub.game.deception.domain.DeceptionGameConfig;
-import com.gamehub.game.deception.domain.DeceptionRole;
-import com.gamehub.game.deception.domain.GamePlayer;
-import com.gamehub.game.deception.domain.GameSession;
-import com.gamehub.game.deception.dto.GamePlayerResponse;
-import com.gamehub.game.deception.dto.GameStateResponse;
-import com.gamehub.game.deception.dto.StartGameRequest;
-import com.gamehub.game.deception.dto.StartGameResponse;
+import com.gamehub.game.deception.domain.*;
+import com.gamehub.game.deception.dto.*;
 import com.gamehub.game.exception.GameSessionNotFoundException;
 import com.gamehub.game.exception.InsufficientPlayersException;
 import com.gamehub.game.exception.InvalidPlayerCountException;
@@ -35,19 +29,22 @@ public class DeceptionGameService {
     private final RoleAssignmentService roleAssignmentService;
     private final GameSessionRegistry gameSessionRegistry;
     private final UserRepository userRepository;
+    private final GameEventService gameEventService;
 
     public DeceptionGameService(
             GameRoomRepository gameRoomRepository,
             RoomPlayerRepository roomPlayerRepository,
             RoleAssignmentService roleAssignmentService,
             GameSessionRegistry gameSessionRegistry,
-            UserRepository userRepository
+            UserRepository userRepository,
+            GameEventService gameEventService
     ){
         this.gameRoomRepository=gameRoomRepository;
         this.roomPlayerRepository = roomPlayerRepository;
         this.roleAssignmentService=roleAssignmentService;
         this.gameSessionRegistry=gameSessionRegistry;
         this.userRepository = userRepository;
+        this.gameEventService = gameEventService;
     }
 
 
@@ -113,9 +110,27 @@ public class DeceptionGameService {
 
         roleAssignmentService.allocateRoles(deceptionRoleList,gamePlayerList);
         gameSessionRegistry.storeSession(gameSession);
+
         gameRoom.setRoomStatus(RoomStatus.IN_PROGRESS);
         gameRoomRepository.save(gameRoom);
-        return new StartGameResponse(gameSession.getSessionId());
+
+// Notify all players that the game has started.
+        gameEventService.publish(
+                gameSession,
+                GameEventType.GAME_STARTED,
+                null
+        );
+
+// The game starts in NIGHT phase.
+        gameEventService.publish(
+                gameSession,
+                GameEventType.NIGHT_STARTED,
+                gameSession.getRoundNumber()
+        );
+
+        return new StartGameResponse(
+                gameSession.getSessionId()
+        );
     }
 
     public GameStateResponse getGameState(UUID sessionId, User user) {
@@ -130,13 +145,20 @@ public class DeceptionGameService {
         }
 
         // 2. Find the requesting player inside this game session.
-        GamePlayer currentPlayer = gameSession.getPlayers().get(user.getUserId());
+        GamePlayer currentPlayer =
+                gameSession.getPlayers().get(user.getUserId());
 
         if (currentPlayer == null) {
             throw new UnauthorizedException(
                     "You are not a player in this game"
             );
         }
+
+// Re-fetch the current user from the database.
+// GamePlayer may contain a detached Hibernate User proxy
+// because GameSession is stored in-memory.
+        User currentUser = userRepository.findById(user.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 3. Build PUBLIC player information.
         // We deliberately don't include roles here.
@@ -165,7 +187,107 @@ public class DeceptionGameService {
                 gameSession.getGamePhase(),
                 gameSession.getRoundNumber(),
                 currentPlayer.getRole(),
-                players
+                players,
+                currentUser.getUsername()
+        );
+    }
+
+    public GameResultResponse getGameResult(
+            UUID sessionId
+    ) {
+
+        GameSession gameSession =
+                gameSessionRegistry.retrieveSession(sessionId);
+
+        if (gameSession == null) {
+            throw new GameSessionNotFoundException(
+                    "Game Session not found"
+            );
+        }
+
+        if (gameSession.getGamePhase()
+                != GamePhase.GAME_OVER) {
+
+            throw new RuntimeException(
+                    "Game is not over yet"
+            );
+        }
+
+        return new GameResultResponse(
+                sessionId,
+                gameSession.getGameResult()
+        );
+    }
+
+    public DayStateResponse getDayState(UUID sessionId) {
+
+        GameSession gameSession =
+                gameSessionRegistry.retrieveSession(sessionId);
+
+        if (gameSession == null) {
+            throw new GameSessionNotFoundException(
+                    "Game Session not found"
+            );
+        }
+
+        if (gameSession.getGamePhase()
+                != GamePhase.DAY) {
+
+            throw new RuntimeException(
+                    "Game is not currently in DAY phase"
+            );
+        }
+
+        return new DayStateResponse(
+                gameSession.getSessionId(),
+                gameSession.getGamePhase(),
+                gameSession.getRoundNumber(),
+                gameSession.getEliminatedUserId()
+        );
+    }
+
+    public InvestigationResponse getInvestigationResult(
+            UUID sessionId,
+            User user
+    ) {
+
+        GameSession gameSession =
+                gameSessionRegistry.retrieveSession(sessionId);
+
+        if (gameSession == null) {
+            throw new GameSessionNotFoundException(
+                    "Game Session not found"
+            );
+        }
+
+        GamePlayer player =
+                gameSession.getPlayers()
+                        .get(user.getUserId());
+
+        if (player == null) {
+            throw new UnauthorizedException(
+                    "You are not a player in this game"
+            );
+        }
+
+        if (player.getRole()
+                != DeceptionRole.DETECTIVE) {
+
+            throw new UnauthorizedException(
+                    "Only the Detective can view investigation results"
+            );
+        }
+
+        if (gameSession.getInvestigatedUserId() == null) {
+            throw new RuntimeException(
+                    "No investigation result available"
+            );
+        }
+
+        return new InvestigationResponse(
+                sessionId,
+                gameSession.getInvestigatedUserId(),
+                gameSession.getInvestigationResult()
         );
     }
 

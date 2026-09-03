@@ -14,7 +14,7 @@ public class GameStateResponse {
 
     // Only the requesting player's role is exposed.
     private DeceptionRole yourRole;
-
+    private String yourUsername;
     // Public information about all players.
     private List<GamePlayerResponse> players;
 
@@ -23,13 +23,15 @@ public class GameStateResponse {
             GamePhase gamePhase,
             int roundNumber,
             DeceptionRole yourRole,
-            List<GamePlayerResponse> players
+            List<GamePlayerResponse> players,
+            String yourUsername
     ) {
         this.sessionId = sessionId;
         this.gamePhase = gamePhase;
         this.roundNumber = roundNumber;
         this.yourRole = yourRole;
         this.players = players;
+        this.yourUsername=yourUsername;
     }
 
     public UUID getSessionId() {
@@ -50,5 +52,9 @@ public class GameStateResponse {
 
     public List<GamePlayerResponse> getPlayers() {
         return players;
+    }
+
+    public String getYourUsername() {
+        return yourUsername;
     }
 }
