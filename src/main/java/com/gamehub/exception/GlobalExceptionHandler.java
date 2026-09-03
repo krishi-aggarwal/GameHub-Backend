@@ -3,9 +3,7 @@ package com.gamehub.exception;
 import com.gamehub.auth.exception.EmailExistsException;
 import com.gamehub.auth.exception.InvalidCredentialsException;
 import com.gamehub.auth.exception.UsernameExistsException;
-import com.gamehub.game.exception.GameExistsException;
-import com.gamehub.game.exception.GameNotExistsException;
-import com.gamehub.game.exception.InvalidPlayerRangeException;
+import com.gamehub.game.exception.*;
 import com.gamehub.room.exception.*;
 import com.gamehub.user.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -194,6 +192,35 @@ public class GlobalExceptionHandler {
                 410,
                 request.getRequestURI(),
                 "Player not in the Room"
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                401,
+                request.getRequestURI(),
+                "Unauthorized Access"
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+    @ExceptionHandler(InsufficientPlayersException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientPlayers(
+            InsufficientPlayersException ex,
+            HttpServletRequest request
+    ){
+        ErrorResponse errorResponse = new ErrorResponse(
+                ex.getMessage(),
+                410,
+                request.getRequestURI(),
+                "Insufficient Players to Start Game"
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

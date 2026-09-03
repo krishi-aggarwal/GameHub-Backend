@@ -35,3 +35,5 @@ build/
 .env
 
 SecretGenerator.java
+stomp-test.html
+websocket-test.html
