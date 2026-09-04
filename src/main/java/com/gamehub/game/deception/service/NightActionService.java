@@ -1,4 +1,5 @@
-package com.gamehub.game.deception.service;
+
+        package com.gamehub.game.deception.service;
 
 import com.gamehub.domain.user.User;
 import com.gamehub.game.deception.domain.*;
@@ -67,9 +68,10 @@ public class NightActionService {
         // 4. Validate request
         // -------------------------------------------------
 
-        if (request == null ||
-                request.getTargetUserId() == null) {
-
+        if (
+                request == null ||
+                        request.getTargetUserId() == null
+        ) {
             throw new RuntimeException(
                     "Target player is required"
             );
@@ -99,10 +101,16 @@ public class NightActionService {
         }
 
         // -------------------------------------------------
-        // 6. Player cannot target themselves
+        // 6. Self-target validation
+        //
+        // Doctor may protect themselves.
+        // Predator and Detective may NOT target themselves.
         // -------------------------------------------------
 
-        if (user.getUserId().equals(targetUserId)) {
+        if (
+                currentPlayer.getUserId().equals(targetUserId)
+                        && action != NightAction.PROTECT
+        ) {
             throw new RuntimeException(
                     "Player cannot target themselves"
             );
@@ -139,9 +147,13 @@ public class NightActionService {
         // 9. Check whether everyone required has acted
         // -------------------------------------------------
 
-        if (nightResolutionService.isNightReady(gameSession)) {
+        if (
+                nightResolutionService
+                        .isNightReady(gameSession)
+        ) {
 
-            nightResolutionService.resolveNight(gameSession);
+            nightResolutionService
+                    .resolveNight(gameSession);
 
             return "Night resolved. Day phase started.";
         }
@@ -162,7 +174,10 @@ public class NightActionService {
 
             case ELIMINATE -> {
 
-                if (role != DeceptionRole.PREDATOR) {
+                if (
+                        role !=
+                                DeceptionRole.PREDATOR
+                ) {
                     throw new RuntimeException(
                             "Only Predators can perform ELIMINATE action"
                     );
@@ -171,7 +186,10 @@ public class NightActionService {
 
             case PROTECT -> {
 
-                if (role != DeceptionRole.DOCTOR) {
+                if (
+                        role !=
+                                DeceptionRole.DOCTOR
+                ) {
                     throw new RuntimeException(
                             "Only Doctor can perform PROTECT action"
                     );
@@ -180,7 +198,10 @@ public class NightActionService {
 
             case INVESTIGATE -> {
 
-                if (role != DeceptionRole.DETECTIVE) {
+                if (
+                        role !=
+                                DeceptionRole.DETECTIVE
+                ) {
                     throw new RuntimeException(
                             "Only Detective can perform INVESTIGATE action"
                     );
@@ -189,3 +210,4 @@ public class NightActionService {
         }
     }
 }
+

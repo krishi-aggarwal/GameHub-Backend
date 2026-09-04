@@ -2,6 +2,7 @@ package com.gamehub.game.service;
 
 import com.gamehub.domain.game.Game;
 
+import com.gamehub.domain.game.GameStatus;
 import com.gamehub.domain.game.GameType;
 import com.gamehub.domain.user.User;
 import com.gamehub.game.dto.CreateGameRequest;
@@ -107,33 +108,97 @@ public class GameService {
         return toResponse(game);
     }
 
-    public GameResponse updateGame(Long gameId , UpdateGameRequest request){
-        Optional<Game> gameOptional = gameRepository.findById(gameId);
 
-        if(gameOptional.isEmpty()){
-            throw new GameNotExistsException("Game not Found!");
-        }
+    public GameResponse updateGame(
+            Long gameId,
+            UpdateGameRequest request
+    ) {
 
-        if (request.getMinPlayers() > request.getMaxPlayers()) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() ->
+                        new GameNotExistsException(
+                                "Game not Found!"
+                        )
+                );
+
+        /*
+         * Keep existing values when a field
+         * is not provided.
+         */
+        String name =
+                request.getName() != null
+                        ? request.getName()
+                        : game.getName();
+
+        String slug =
+                request.getSlug() != null
+                        ? request.getSlug()
+                        : game.getSlug();
+
+        String description =
+                request.getDescription() != null
+                        ? request.getDescription()
+                        : game.getDescription();
+
+        int minPlayers =
+                request.getMinPlayers() != null
+                        ? request.getMinPlayers()
+                        : game.getMinPlayers();
+
+        int maxPlayers =
+                request.getMaxPlayers() != null
+                        ? request.getMaxPlayers()
+                        : game.getMaxPlayers();
+
+        GameType gameType =
+                request.getGameType() != null
+                        ? request.getGameType()
+                        : game.getGameType();
+
+        GameStatus status =
+                request.getStatus() != null
+                        ? request.getStatus()
+                        : game.getStatus();
+
+        String thumbnailUrl =
+                request.getThumbnailUrl() != null
+                        ? request.getThumbnailUrl()
+                        : game.getThumbnailUrl();
+
+        // Validate final player range
+        if (minPlayers > maxPlayers) {
             throw new InvalidPlayerRangeException(
                     "Minimum players cannot be greater than maximum players"
             );
         }
 
-        Game game = gameOptional.get();
+        // Check slug only when changing it
+        if (!slug.equals(game.getSlug())
+                && gameRepository.existsBySlug(slug)) {
+
+            throw new GameExistsException(
+                    "Game with this slug already Exists!"
+            );
+        }
 
         game.updateDetails(
-                request.getName(),
-                request.getDescription(),
-                request.getMinPlayers(),
-                request.getMaxPlayers(),
-                request.getThumbnailUrl()
+                name,
+                slug,
+                description,
+                minPlayers,
+                maxPlayers,
+                gameType,
+                thumbnailUrl,
+                status
         );
 
-        Game updatedGame = gameRepository.save(game);
+        Game updatedGame =
+                gameRepository.save(game);
 
         return toResponse(updatedGame);
     }
+
+
 
     public void deleteGame(Long gameId) {
         if (!gameRepository.existsById(gameId)) {

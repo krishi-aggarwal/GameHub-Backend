@@ -1,24 +1,34 @@
 package com.gamehub.config;
 
 import com.gamehub.auth.security.JwtAuthenticationFilter;
-
-
 import com.gamehub.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -26,7 +36,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -37,11 +49,66 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /*
+     * CORS configuration.
+     *
+     * Expo Web runs on localhost:8081 during development.
+     * Spring Boot runs on localhost:8080.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                List.of(
+                        "http://localhost:8081",
+                        "http://localhost:8080"
+                )
+        );
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "PATCH",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of("*")
+        );
+
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
+        return source;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
+
+                // Enable CORS for the REST API.
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
 
                 // We are building a stateless REST API,
                 // so CSRF protection is disabled.
@@ -58,39 +125,54 @@ public class SecurityConfig {
                 // Define which endpoints require authentication.
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Authentication endpoints are public.
+                        .requestMatchers(
+                                "/api/auth/**"
+                        ).permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/games")
-                        .hasRole("ADMIN")
+                        // Admin-only game management.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/games"
+                        ).hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.PUT, "/api/games/**")
-                        .hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/games/**"
+                        ).hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.DELETE, "/api/games/**")
-                        .hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/games/**"
+                        ).hasRole("ADMIN")
 
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
+                        // Spring error endpoint.
+                        .requestMatchers(
+                                "/error"
+                        ).permitAll()
+
+                        // WebSocket handshake.
+                        .requestMatchers(
+                                "/ws/**"
+                        ).permitAll()
+
+                        // Everything else requires authentication.
                         .anyRequest().authenticated()
                 )
 
-
-
-                // If a protected endpoint is accessed without
-                // valid authentication, Spring Security calls
-                // this AuthenticationEntryPoint.
+                // Custom authentication/authorization errors.
                 .exceptionHandling(exception ->
-                        exception.authenticationEntryPoint(
-                                authenticationEntryPoint()
-                        ).accessDeniedHandler(accessDeniedHandler())
+                        exception
+                                .authenticationEntryPoint(
+                                        authenticationEntryPoint()
+                                )
+                                .accessDeniedHandler(
+                                        accessDeniedHandler()
+                                )
                 )
 
-                // Run our JWT filter before Spring's
+                // Run JWT filter before Spring Security's
                 // UsernamePasswordAuthenticationFilter.
-                //
-                // The JWT filter extracts and validates the token
-                // and places the authenticated User into
-                // SecurityContext.
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -104,25 +186,29 @@ public class SecurityConfig {
 
         return (request, response, authException) -> {
 
-            // Tell the client that authentication is required.
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
-            // Tell the client that we are returning JSON.
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-            // Build our standard API error response.
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "Unauthorized",
-                    401,
-                    request.getRequestURI(),
-                    "Authentication is required to access this resource."
+            response.setStatus(
+                    HttpServletResponse.SC_UNAUTHORIZED
             );
 
-            // Convert ErrorResponse object into JSON.
-            ObjectMapper objectMapper = new ObjectMapper();
+            response.setContentType(
+                    MediaType.APPLICATION_JSON_VALUE
+            );
+
+            ErrorResponse errorResponse =
+                    new ErrorResponse(
+                            "Unauthorized",
+                            401,
+                            request.getRequestURI(),
+                            "Authentication is required to access this resource."
+                    );
+
+            ObjectMapper objectMapper =
+                    new ObjectMapper();
 
             response.getWriter().write(
-                    objectMapper.writeValueAsString(errorResponse)
+                    objectMapper.writeValueAsString(
+                            errorResponse
+                    )
             );
         };
     }
@@ -132,20 +218,29 @@ public class SecurityConfig {
 
         return (request, response, accessDeniedException) -> {
 
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "Forbidden",
-                    403,
-                    request.getRequestURI(),
-                    "You do not have permission to access this resource."
+            response.setStatus(
+                    HttpServletResponse.SC_FORBIDDEN
             );
 
-            ObjectMapper objectMapper = new ObjectMapper();
+            response.setContentType(
+                    MediaType.APPLICATION_JSON_VALUE
+            );
+
+            ErrorResponse errorResponse =
+                    new ErrorResponse(
+                            "Forbidden",
+                            403,
+                            request.getRequestURI(),
+                            "You do not have permission to access this resource."
+                    );
+
+            ObjectMapper objectMapper =
+                    new ObjectMapper();
 
             response.getWriter().write(
-                    objectMapper.writeValueAsString(errorResponse)
+                    objectMapper.writeValueAsString(
+                            errorResponse
+                    )
             );
         };
     }

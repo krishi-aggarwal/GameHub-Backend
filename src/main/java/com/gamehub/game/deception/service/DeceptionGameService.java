@@ -16,7 +16,9 @@ import com.gamehub.repository.RoomPlayerRepository;
 import com.gamehub.repository.UserRepository;
 import com.gamehub.room.exception.RoomNotExistsException;
 import com.gamehub.room.exception.RoomNotWaitingException;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,14 +50,25 @@ public class DeceptionGameService {
     }
 
 
-    public List<GamePlayer> toGamePlayerList (List<RoomPlayer> roomPlayerList){
+    public List<GamePlayer> toGamePlayerList(
+            List<RoomPlayer> roomPlayerList
+    ) {
+
         List<GamePlayer> gamePlayerList = new ArrayList<>();
-        for(RoomPlayer roomPlayer : roomPlayerList){
+
+        for (RoomPlayer roomPlayer : roomPlayerList) {
+
+            User user = roomPlayer.getUser();
+
             GamePlayer gamePlayer = new GamePlayer(
-                    roomPlayer.getUser(),
+                    user.getUserId(),
+                    user.getUsername(),
+                    user.getDisplayName(),
+                    user.getAvatarUrl(),
                     null,
                     true
             );
+
             gamePlayerList.add(gamePlayer);
         }
 
@@ -133,65 +146,129 @@ public class DeceptionGameService {
         );
     }
 
-    public GameStateResponse getGameState(UUID sessionId, User user) {
 
-        // 1. Find the active game session from our in-memory registry.
-        GameSession gameSession = gameSessionRegistry.retrieveSession(sessionId);
+
+
+    @Transactional(readOnly = true)
+    public GameStateResponse getGameState(
+            UUID sessionId,
+            User user
+    ) {
+
+        GameSession gameSession =
+                gameSessionRegistry.retrieveSession(
+                        sessionId
+                );
 
         if (gameSession == null) {
+
             throw new GameSessionNotFoundException(
                     "Game Session not found"
             );
         }
 
-        // 2. Find the requesting player inside this game session.
+        if (user == null ||
+                user.getUserId() == null) {
+
+            throw new UnauthorizedException(
+                    "Authenticated user not found"
+            );
+        }
+
+        /*
+         * Find current player using userId.
+         */
         GamePlayer currentPlayer =
-                gameSession.getPlayers().get(user.getUserId());
+                gameSession
+                        .getPlayers()
+                        .get(user.getUserId());
 
         if (currentPlayer == null) {
+
             throw new UnauthorizedException(
                     "You are not a player in this game"
             );
         }
 
-// Re-fetch the current user from the database.
-// GamePlayer may contain a detached Hibernate User proxy
-// because GameSession is stored in-memory.
-        User currentUser = userRepository.findById(user.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        /*
+         * Current player must already have
+         * a role because roles are assigned
+         * before the session is stored.
+         */
+        if (currentPlayer.getRole() == null) {
 
-        // 3. Build PUBLIC player information.
-        // We deliberately don't include roles here.
-        List<GamePlayerResponse> players = new ArrayList<>();
+            throw new RuntimeException(
+                    "Player role has not been assigned"
+            );
+        }
 
-        for (GamePlayer player : gameSession.getPlayers().values()) {
+        /*
+         * Build player list.
+         */
+        List<GamePlayerResponse> players =
+                new ArrayList<>();
 
-            User playerUser = userRepository.findById(player.getUser().getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+        for (GamePlayer player :
+                gameSession
+                        .getPlayers()
+                        .values()) {
 
-// Build only PUBLIC player information.
-// Role is intentionally NOT included.
+            if (player == null) {
+                continue;
+            }
+
             players.add(
                     new GamePlayerResponse(
-                            playerUser.getUserId(),
-                            playerUser.getDisplayName(),
-                            playerUser.getAvatarUrl(),
+                            player.getUserId(),
+                            player.getDisplayName(),
+                            player.getAvatarUrl(),
                             player.isAlive()
                     )
             );
         }
 
-        // 4. Return the complete state.
-        // yourRole contains ONLY the requesting player's role.
+        /*
+         * Host information comes from the
+         * runtime GameSession snapshot.
+         */
+        Long hostUserId =
+                gameSession.getHostUserId();
+
+        String hostUsername =
+                gameSession.getHostUsername();
+
+        if (hostUserId == null) {
+
+            throw new RuntimeException(
+                    "Game session host not found"
+            );
+        }
+
+        boolean isHost =
+                hostUserId.equals(
+                        user.getUserId()
+                );
+
         return new GameStateResponse(
                 gameSession.getSessionId(),
                 gameSession.getGamePhase(),
                 gameSession.getRoundNumber(),
                 currentPlayer.getRole(),
                 players,
-                currentUser.getUsername()
+                user.getUsername(),
+                isHost,
+                hostUserId,
+                hostUsername
         );
     }
+
+
+
+
+
+
+
+
 
     public GameResultResponse getGameResult(
             UUID sessionId

@@ -1,28 +1,36 @@
-package com.gamehub.game.dto;
 
+        package com.gamehub.game.dto;
+
+import com.gamehub.domain.game.GameStatus;
+import com.gamehub.domain.game.GameType;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class UpdateGameRequest {
-    @NotBlank
+
     @Size(max = 100)
     private String name;
 
-    @NotBlank
-    @Size(max = 500)
+    @Size(max = 100)
+    private String slug;
+
+    @Size(max = 250)
     private String description;
 
-    @NotNull
     @Min(2)
     private Integer minPlayers;
 
-    @NotNull
     @Min(2)
     private Integer maxPlayers;
 
+    private GameType gameType;
+
+    private GameStatus status;
+
     private String thumbnailUrl;
+
+    public UpdateGameRequest() {
+    }
 
     public String getName() {
         return name;
@@ -30,6 +38,14 @@ public class UpdateGameRequest {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getDescription() {
@@ -56,6 +72,22 @@ public class UpdateGameRequest {
         this.maxPlayers = maxPlayers;
     }
 
+    public GameType getGameType() {
+        return gameType;
+    }
+
+    public void setGameType(GameType gameType) {
+        this.gameType = gameType;
+    }
+
+    public GameStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(GameStatus status) {
+        this.status = status;
+    }
+
     public String getThumbnailUrl() {
         return thumbnailUrl;
     }
@@ -64,3 +96,4 @@ public class UpdateGameRequest {
         this.thumbnailUrl = thumbnailUrl;
     }
 }
+

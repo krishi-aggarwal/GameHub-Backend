@@ -1,10 +1,16 @@
-package com.gamehub.auth.dto;
+
+        package com.gamehub.auth.dto;
+
+
+import com.gamehub.domain.user.User;
 
 public class UserResponse {
+
     private String username;
     private String email;
     private String displayName;
     private String avatarUrl;
+    private User.Role role;
 
     public UserResponse() {
 
@@ -14,12 +20,14 @@ public class UserResponse {
             String username,
             String email,
             String displayName,
-            String avatarUrl
+            String avatarUrl,
+            User.Role role
     ) {
         this.username = username;
         this.email = email;
         this.displayName = displayName;
         this.avatarUrl = avatarUrl;
+        this.role = role;
     }
 
     public String getEmail() {
@@ -54,5 +62,11 @@ public class UserResponse {
         this.username = username;
     }
 
+    public User.Role getRole() {
+        return role;
+    }
 
+    public void setRole(User.Role role) {
+        this.role = role;
+    }
 }

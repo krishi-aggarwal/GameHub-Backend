@@ -1,9 +1,9 @@
-
-        package com.gamehub.game.deception.controller;
+package com.gamehub.game.deception.controller;
 
 import com.gamehub.domain.user.User;
 import com.gamehub.game.deception.dto.ChatMessageRequest;
 import com.gamehub.game.deception.service.GameChatService;
+
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.Authentication;
@@ -23,17 +23,6 @@ public class GameChatController {
         this.gameChatService = gameChatService;
     }
 
-    /**
-     * Receives a chat message from a connected player.
-     *
-     * Client sends:
-     *
-     * /app/game/{sessionId}/chat
-     *
-     * Server broadcasts through:
-     *
-     * /topic/game/{sessionId}
-     */
     @MessageMapping("/game/{sessionId}/chat")
     public void sendMessage(
             @DestinationVariable UUID sessionId,
@@ -41,13 +30,29 @@ public class GameChatController {
             Principal principal
     ) {
 
-        // Spring Security's Principal is normally an Authentication.
-        Authentication authentication =
-                (Authentication) principal;
+        if (principal == null) {
 
-        // Our application stores User as the authenticated principal.
-        User user =
-                (User) authentication.getPrincipal();
+            throw new IllegalStateException(
+                    "WebSocket user is not authenticated."
+            );
+        }
+
+        if (!(principal instanceof Authentication authentication)) {
+
+            throw new IllegalStateException(
+                    "Invalid WebSocket authentication."
+            );
+        }
+
+        Object principalObject =
+                authentication.getPrincipal();
+
+        if (!(principalObject instanceof User user)) {
+
+            throw new IllegalStateException(
+                    "Invalid authenticated user."
+            );
+        }
 
         gameChatService.sendMessage(
                 sessionId,
@@ -56,4 +61,3 @@ public class GameChatController {
         );
     }
 }
-

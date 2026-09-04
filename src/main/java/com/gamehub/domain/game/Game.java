@@ -121,15 +121,21 @@ public class Game {
 
     public void updateDetails(
             String name,
+            String slug,
             String description,
             int minPlayers,
             int maxPlayers,
-            String thumbnailUrl
+            GameType gameType,
+            String thumbnailUrl,
+            GameStatus status
     ) {
         this.name = name;
+        this.slug = slug;
         this.description = description;
         this.minPlayers = minPlayers;
         this.maxPlayers = maxPlayers;
+        this.gameType = gameType;
         this.thumbnailUrl = thumbnailUrl;
+        this.status = status;
     }
 }
