@@ -9,5 +9,7 @@ public enum GameEventType {
     VOTING_STARTED,
     VOTING_RESOLVED,
     PLAYER_ELIMINATED,
-    GAME_OVER
+    GAME_OVER,
+    CHAT_MESSAGE,
+    NIGHT_ACTIVITY
 }

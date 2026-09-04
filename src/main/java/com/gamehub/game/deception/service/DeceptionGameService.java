@@ -175,6 +175,7 @@ public class DeceptionGameService {
                     new GamePlayerResponse(
                             playerUser.getUserId(),
                             playerUser.getDisplayName(),
+                            playerUser.getAvatarUrl(),
                             player.isAlive()
                     )
             );

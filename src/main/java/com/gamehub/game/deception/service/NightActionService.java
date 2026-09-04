@@ -1,23 +1,23 @@
 package com.gamehub.game.deception.service;
 
 import com.gamehub.domain.user.User;
-import com.gamehub.game.deception.domain.DeceptionRole;
-import com.gamehub.game.deception.domain.GamePhase;
-import com.gamehub.game.deception.domain.GamePlayer;
-import com.gamehub.game.deception.domain.GameSession;
-import com.gamehub.game.deception.domain.NightAction;
+import com.gamehub.game.deception.domain.*;
 import com.gamehub.game.deception.dto.NightActionRequest;
+import com.gamehub.game.deception.dto.NightActivityResponse;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NightActionService {
 
     private final NightResolutionService nightResolutionService;
+    private final GameEventService gameEventService;
 
     public NightActionService(
-            NightResolutionService nightResolutionService
+            NightResolutionService nightResolutionService,
+            GameEventService gameEventService
     ) {
         this.nightResolutionService = nightResolutionService;
+        this.gameEventService = gameEventService;
     }
 
     public String performAction(
@@ -125,6 +125,14 @@ public class NightActionService {
                 user.getUserId(),
                 action,
                 targetUserId
+        );
+
+        gameEventService.publish(
+                gameSession,
+                GameEventType.NIGHT_ACTIVITY,
+                new NightActivityResponse(
+                        "A player has completed their night action."
+                )
         );
 
         // -------------------------------------------------

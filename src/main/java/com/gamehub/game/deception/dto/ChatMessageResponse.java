@@ -1,27 +1,34 @@
 
 package com.gamehub.game.deception.dto;
 
-public class GamePlayerResponse {
+public class ChatMessageResponse {
 
     private Long userId;
+    private String username;
     private String displayName;
     private String avatarUrl;
-    private boolean alive;
+    private String message;
 
-    public GamePlayerResponse(
+    public ChatMessageResponse(
             Long userId,
+            String username,
             String displayName,
             String avatarUrl,
-            boolean alive
+            String message
     ) {
         this.userId = userId;
+        this.username = username;
         this.displayName = displayName;
         this.avatarUrl = avatarUrl;
-        this.alive = alive;
+        this.message = message;
     }
 
     public Long getUserId() {
         return userId;
+    }
+
+    public String getUsername() {
+        return username;
     }
 
     public String getDisplayName() {
@@ -32,8 +39,8 @@ public class GamePlayerResponse {
         return avatarUrl;
     }
 
-    public boolean isAlive() {
-        return alive;
+    public String getMessage() {
+        return message;
     }
 }
 
