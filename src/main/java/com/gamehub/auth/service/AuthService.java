@@ -80,7 +80,7 @@ public class AuthService {
                         request.getUsername()
                 );
 
-        if (userOptional.isEmpty()) {
+        if (!userOptional.isPresent()) {
             throw new InvalidCredentialsException(
                     "Invalid Credentials"
             );

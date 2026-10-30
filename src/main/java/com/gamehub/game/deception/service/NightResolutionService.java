@@ -42,7 +42,6 @@ public class NightResolutionService {
         for (GamePlayer player :
                 gameSession.getPlayers().values()) {
 
-            // Dead players do not need to submit actions.
             if (!player.isAlive()) {
                 continue;
             }
@@ -69,15 +68,30 @@ public class NightResolutionService {
      * Resolves all submitted night actions.
      *
      * Order:
-     * 1. Determine Predator target
-     * 2. Determine Doctor protection
-     * 3. Determine Detective investigation
-     * 4. Apply elimination
-     * 5. Store investigation result
-     * 6. Check win condition
-     * 7. Move to DAY if game is still active
+     * 1. Clear previous investigation data
+     * 2. Determine Predator target
+     * 3. Determine Doctor protection
+     * 4. Determine Detective investigation
+     * 5. Apply elimination
+     * 6. Store investigation result
+     * 7. Check win condition
+     * 8. Move to DAY if game is still active
      */
     public void resolveNight(GameSession gameSession) {
+
+        // -------------------------------------------------
+        // Clear previous night-specific investigation data
+        // -------------------------------------------------
+
+        gameSession.setInvestigatedUserId(null);
+        gameSession.setInvestigationResult(null);
+        gameSession.setProtectedUserId(null);
+        gameSession.setEliminatedUserId(null);
+
+
+        // -------------------------------------------------
+        // Determine night actions
+        // -------------------------------------------------
 
         Long predatorTarget =
                 determinePredatorTarget(gameSession);
@@ -112,14 +126,12 @@ public class NightResolutionService {
             if (target != null &&
                     target.isAlive()) {
 
-                // Player was not protected.
                 target.setAlive(false);
 
                 gameSession.setEliminatedUserId(
                         predatorTarget
                 );
 
-                // Notify all connected players.
                 gameEventService.publish(
                         gameSession,
                         GameEventType.PLAYER_ELIMINATED,
@@ -135,42 +147,45 @@ public class NightResolutionService {
 
         if (detectiveTarget != null) {
 
-            GamePlayer investigatedPlayer =
-                    gameSession.getPlayers()
-                            .get(detectiveTarget);
+            GamePlayer detective =
+                    findLivingDetective(gameSession);
 
-            if (investigatedPlayer != null) {
+            /*
+             * Only a living Detective may have
+             * an investigation result.
+             */
+            if (detective != null) {
 
-                gameSession.setInvestigatedUserId(
-                        detectiveTarget
-                );
+                GamePlayer investigatedPlayer =
+                        gameSession.getPlayers()
+                                .get(detectiveTarget);
 
-                gameSession.setInvestigationResult(
-                        investigatedPlayer.getRole()
-                );
+                if (investigatedPlayer != null &&
+                        investigatedPlayer.isAlive()) {
 
-                /*
-                 * IMPORTANT:
-                 *
-                 * We DO NOT broadcast the investigation result.
-                 *
-                 * The result is private and can only be requested
-                 * through the Detective-only REST endpoint.
-                 */
+                    gameSession.setInvestigatedUserId(
+                            detectiveTarget
+                    );
+
+                    gameSession.setInvestigationResult(
+                            investigatedPlayer.getRole()
+                    );
+                }
             }
         }
 
 
         // -------------------------------------------------
-        // NIGHT → DAY
+        // NIGHT → DAY / GAME OVER
         // -------------------------------------------------
 
         boolean gameOver =
-                winConditionService.checkWinCondition(gameSession);
+                winConditionService.checkWinCondition(
+                        gameSession
+                );
 
         if (gameOver) {
 
-            // Game ended because of the night elimination.
             gameEventService.publish(
                     gameSession,
                     GameEventType.GAME_OVER,
@@ -181,17 +196,22 @@ public class NightResolutionService {
         }
 
 
-        // No winner yet → continue to DAY.
-        gameSession.setGamePhase(GamePhase.DAY);
+        // -------------------------------------------------
+        // Start DAY
+        // -------------------------------------------------
 
-        // Tell all clients that night resolution is complete.
+        gameSession.setGamePhase(
+                GamePhase.DAY
+        );
+
+
         gameEventService.publish(
                 gameSession,
                 GameEventType.NIGHT_RESOLVED,
                 gameSession.getEliminatedUserId()
         );
 
-        // Tell all clients that DAY has started.
+
         gameEventService.publish(
                 gameSession,
                 GameEventType.DAY_STARTED,
@@ -201,10 +221,31 @@ public class NightResolutionService {
 
 
     /**
+     * Returns the currently living Detective.
+     */
+    private GamePlayer findLivingDetective(
+            GameSession gameSession
+    ) {
+
+        for (GamePlayer player :
+                gameSession.getPlayers().values()) {
+
+            if (player.isAlive() &&
+                    player.getRole()
+                            == DeceptionRole.DETECTIVE) {
+
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
      * Determines the Predator team's target.
      *
      * Multiple Predators vote.
-     *
      * Majority target wins.
      * If there is a tie, nobody is eliminated.
      */
@@ -227,19 +268,16 @@ public class NightResolutionService {
                     gameSession.getPlayers()
                             .get(playerId);
 
-            // Ignore missing/dead players.
             if (predator == null ||
                     !predator.isAlive()) {
                 continue;
             }
 
-            // Only Predators participate in elimination.
             if (predator.getRole()
                     != DeceptionRole.PREDATOR) {
                 continue;
             }
 
-            // Only ELIMINATE actions matter here.
             if (action.getAction()
                     != NightAction.ELIMINATE) {
                 continue;
@@ -257,7 +295,6 @@ public class NightResolutionService {
             );
         }
 
-        // No Predator target.
         if (targetVotes.isEmpty()) {
             return null;
         }
@@ -283,7 +320,6 @@ public class NightResolutionService {
             }
         }
 
-        // Tie between Predator targets → nobody dies.
         if (tie) {
             return null;
         }

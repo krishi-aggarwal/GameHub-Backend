@@ -25,7 +25,7 @@ public class WinConditionService {
         gameSession.setGamePhase(GamePhase.GAME_OVER);
 
         gameSession.getGameRoom()
-                .setRoomStatus(RoomStatus.FINISHED);
+            .setRoomStatus(RoomStatus.WAITING);
 
         gameRoomRepository.save(
                 gameSession.getGameRoom()
@@ -57,26 +57,23 @@ public class WinConditionService {
             }
         }
 
-        // All non-Predators eliminated.
-        if (aliveOthers == 0) {
-
-            gameSession.setGameResult(
-                    GameResult.PREDATORS_WIN
-            );
-
-            gameSession.setGamePhase(
-                    GamePhase.GAME_OVER
-            );
-
-            return true;
-        }
-
         // Predators eliminated.
         if (alivePredators == 0) {
 
             finishGame(
                     gameSession,
                     GameResult.INNOCENTS_WIN
+            );
+
+            return true;
+        }
+
+        // All non-Predators eliminated.
+        if (aliveOthers == 0) {
+
+            finishGame(
+                    gameSession,
+                    GameResult.PREDATORS_WIN
             );
 
             return true;

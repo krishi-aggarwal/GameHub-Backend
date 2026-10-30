@@ -10,6 +10,7 @@ public class GamePlayer {
     private DeceptionRole role;
 
     private boolean isAlive;
+    private boolean left;
 
 
     public GamePlayer(
@@ -53,9 +54,18 @@ public class GamePlayer {
         return isAlive;
     }
 
+    public boolean isLeft() {
+        return left;
+    }
+
 
     public void setAlive(boolean alive) {
         isAlive = alive;
+    }
+
+    public void leaveGame() {
+        left = true;
+        isAlive = false;
     }
 
     public void assignRole(DeceptionRole role) {

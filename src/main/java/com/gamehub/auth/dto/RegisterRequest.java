@@ -1,3 +1,4 @@
+
 package com.gamehub.auth.dto;
 
 import jakarta.validation.constraints.Email;

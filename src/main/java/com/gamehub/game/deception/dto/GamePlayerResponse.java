@@ -7,17 +7,20 @@ public class GamePlayerResponse {
     private String displayName;
     private String avatarUrl;
     private boolean alive;
+    private boolean left;
 
     public GamePlayerResponse(
             Long userId,
             String displayName,
             String avatarUrl,
-            boolean alive
+            boolean alive,
+            boolean left
     ) {
         this.userId = userId;
         this.displayName = displayName;
         this.avatarUrl = avatarUrl;
         this.alive = alive;
+        this.left = left;
     }
 
     public Long getUserId() {
@@ -34,6 +37,10 @@ public class GamePlayerResponse {
 
     public boolean isAlive() {
         return alive;
+    }
+
+    public boolean isLeft() {
+        return left;
     }
 }
 

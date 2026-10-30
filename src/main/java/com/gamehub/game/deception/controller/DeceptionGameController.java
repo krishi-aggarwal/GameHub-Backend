@@ -1,13 +1,11 @@
 package com.gamehub.game.deception.controller;
 
 import com.gamehub.domain.user.User;
-import com.gamehub.game.deception.domain.GameEventType;
 import com.gamehub.game.deception.domain.GameSession;
 import com.gamehub.game.deception.domain.NightAction;
 import com.gamehub.game.deception.dto.*;
 import com.gamehub.game.deception.service.*;
 import com.gamehub.game.exception.GameSessionNotFoundException;
-import com.gamehub.game.exception.UnauthorizedException;
 import com.gamehub.mainDto.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,40 +16,58 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/deception/rooms")
 public class DeceptionGameController {
+
     private final DeceptionGameService deceptionGameService;
     private final GameSessionRegistry gameSessionRegistry;
     private final NightActionService nightActionService;
     private final VotingService votingService;
-    private final GameEventService gameEventService;
 
     public DeceptionGameController(
             DeceptionGameService deceptionGameService,
             GameSessionRegistry gameSessionRegistry,
             NightActionService nightActionService,
-            VotingService votingService,
-            GameEventService gameEventService
+            VotingService votingService
     ) {
         this.deceptionGameService = deceptionGameService;
         this.gameSessionRegistry = gameSessionRegistry;
         this.nightActionService = nightActionService;
         this.votingService = votingService;
-        this.gameEventService = gameEventService;
     }
+
+
+    // =========================================================
+    // START GAME
+    // =========================================================
 
     @PostMapping("/{roomCode}/start")
     public ResponseEntity<ApiResponse<StartGameResponse>> startGame(
             @PathVariable String roomCode,
             Authentication authentication,
             @RequestBody StartGameRequest request
-            ){
-        User user = (User) authentication.getPrincipal();
+    ) {
+
+        User user =
+                (User) authentication.getPrincipal();
+
+        StartGameResponse response =
+                deceptionGameService.startGame(
+                        roomCode,
+                        user,
+                        request
+                );
+
         return ResponseEntity.ok(
-                new ApiResponse(
+                new ApiResponse<>(
                         "Game Started",
-                        deceptionGameService.startGame(roomCode,user,request)
+                        response
                 )
         );
     }
+
+
+    // =========================================================
+    // GAME STATE
+    // =========================================================
 
     @GetMapping("/{sessionId}/state")
     public ResponseEntity<ApiResponse<GameStateResponse>> getGameState(
@@ -59,11 +75,14 @@ public class DeceptionGameController {
             Authentication authentication
     ) {
 
-        // Get the currently authenticated user from JWT/Spring Security.
-        User user = (User) authentication.getPrincipal();
+        User user =
+                (User) authentication.getPrincipal();
 
         GameStateResponse response =
-                deceptionGameService.getGameState(sessionId, user);
+                deceptionGameService.getGameState(
+                        sessionId,
+                        user
+                );
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -72,6 +91,25 @@ public class DeceptionGameController {
                 )
         );
     }
+
+    @GetMapping("/{roomCode}/active-session")
+    public ResponseEntity<ApiResponse<StartGameResponse>> getActiveSession(
+            @PathVariable String roomCode,
+            Authentication authentication
+    ) {
+        User user = (User) authentication.getPrincipal();
+        StartGameResponse response =
+                deceptionGameService.getActiveSession(roomCode, user);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>("Active game session", response)
+        );
+    }
+
+
+    // =========================================================
+    // NIGHT ACTION
+    // =========================================================
 
     @PostMapping("/{sessionId}/night/{action}")
     public ResponseEntity<ApiResponse<String>> performNightAction(
@@ -85,9 +123,12 @@ public class DeceptionGameController {
                 (User) authentication.getPrincipal();
 
         GameSession gameSession =
-                gameSessionRegistry.retrieveSession(sessionId);
+                gameSessionRegistry.retrieveSession(
+                        sessionId
+                );
 
         if (gameSession == null) {
+
             throw new GameSessionNotFoundException(
                     "Game Session not found"
             );
@@ -109,23 +150,25 @@ public class DeceptionGameController {
         );
     }
 
+
+    // =========================================================
+    // START VOTING
+    // =========================================================
+
     @PostMapping("/{sessionId}/start-voting")
     public ResponseEntity<ApiResponse<String>> startVoting(
             @PathVariable UUID sessionId,
             Authentication authentication
     ) {
 
-        // Get currently authenticated user.
         User user =
                 (User) authentication.getPrincipal();
 
-
-        // Retrieve the active game session.
         GameSession gameSession =
-                gameSessionRegistry.retrieveSession(sessionId);
+                gameSessionRegistry.retrieveSession(
+                        sessionId
+                );
 
-
-        // Session must exist.
         if (gameSession == null) {
 
             throw new GameSessionNotFoundException(
@@ -133,39 +176,32 @@ public class DeceptionGameController {
             );
         }
 
-
-        // Only the room host can start voting.
-        if (!gameSession.getGameRoom()
-                .getHost()
-                .getUserId()
-                .equals(user.getUserId())) {
-
-            throw new UnauthorizedException(
-                    "Only the host can start voting"
-            );
-        }
-
-
-        // Change game phase:
-        // DAY → VOTING
-        gameSession.startVoting();
-
-
-        // Notify all connected players.
-        gameEventService.publish(
-                gameSession,
-                GameEventType.VOTING_STARTED,
-                null
-        );
-
+        /*
+         * VotingService is now responsible for:
+         *
+         * 1. Checking that the game is in DAY
+         * 2. Checking that the user is the host
+         * 3. Changing DAY → VOTING
+         * 4. Publishing VOTING_STARTED
+         */
+        String result =
+                votingService.startVoting(
+                        gameSession,
+                        user
+                );
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
-                        "Voting started",
+                        result,
                         "SUCCESS"
                 )
         );
     }
+
+
+    // =========================================================
+    // VOTE
+    // =========================================================
 
     @PostMapping("/{sessionId}/vote")
     public ResponseEntity<ApiResponse<String>> vote(
@@ -178,9 +214,12 @@ public class DeceptionGameController {
                 (User) authentication.getPrincipal();
 
         GameSession gameSession =
-                gameSessionRegistry.retrieveSession(sessionId);
+                gameSessionRegistry.retrieveSession(
+                        sessionId
+                );
 
         if (gameSession == null) {
+
             throw new GameSessionNotFoundException(
                     "Game Session not found"
             );
@@ -202,6 +241,10 @@ public class DeceptionGameController {
     }
 
 
+    // =========================================================
+    // GAME RESULT
+    // =========================================================
+
     @GetMapping("/{sessionId}/result")
     public ResponseEntity<ApiResponse<GameResultResponse>> getGameResult(
             @PathVariable UUID sessionId
@@ -217,6 +260,11 @@ public class DeceptionGameController {
         );
     }
 
+
+    // =========================================================
+    // DAY STATE
+    // =========================================================
+
     @GetMapping("/{sessionId}/day")
     public ResponseEntity<ApiResponse<DayStateResponse>> getDayState(
             @PathVariable UUID sessionId
@@ -225,10 +273,17 @@ public class DeceptionGameController {
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         "Day State",
-                        deceptionGameService.getDayState(sessionId)
+                        deceptionGameService.getDayState(
+                                sessionId
+                        )
                 )
         );
     }
+
+
+    // =========================================================
+    // INVESTIGATION RESULT
+    // =========================================================
 
     @GetMapping("/{sessionId}/investigation")
     public ResponseEntity<ApiResponse<InvestigationResponse>> getInvestigationResult(
@@ -249,6 +304,4 @@ public class DeceptionGameController {
                 )
         );
     }
-
-
 }

@@ -6,6 +6,8 @@ import com.gamehub.domain.room.GameRoom;
 import com.gamehub.domain.room.RoomPlayer;
 import com.gamehub.domain.room.RoomStatus;
 import com.gamehub.domain.user.User;
+import com.gamehub.game.deception.service.GameLifecycleService;
+import com.gamehub.game.fishpond.service.FishpondGameService;
 import com.gamehub.game.exception.GameExistsException;
 import com.gamehub.game.exception.GameNotExistsException;
 import com.gamehub.repository.GameRepository;
@@ -30,17 +32,23 @@ public class RoomService {
     private final GameRepository gameRepository;
     private final RoomPlayerRepository roomPlayerRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final GameLifecycleService gameLifecycleService;
+    private final FishpondGameService fishpondGameService;
 
     public RoomService(
             GameRoomRepository gameRoomRepository,
             GameRepository gameRepository,
             RoomPlayerRepository roomPlayerRepository,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            GameLifecycleService gameLifecycleService,
+            FishpondGameService fishpondGameService
     ) {
         this.gameRoomRepository = gameRoomRepository;
         this.gameRepository = gameRepository;
         this.roomPlayerRepository = roomPlayerRepository;
         this.messagingTemplate=messagingTemplate;
+        this.gameLifecycleService = gameLifecycleService;
+        this.fishpondGameService = fishpondGameService;
     }
 
     private String generateRoomCode() {
@@ -93,6 +101,7 @@ public class RoomService {
         response.setRoomCode(savedGameRoom.getRoomCode());
         response.setGameId(savedGameRoom.getGame().getGameId());
         response.setGameName(savedGameRoom.getGame().getName());
+        response.setGameSlug(savedGameRoom.getGame().getSlug());
         response.setHostUsername(savedGameRoom.getHost().getUsername());
         response.setRoomStatus(savedGameRoom.getRoomStatus());
         response.setMaxPlayers(savedGameRoom.getMaxPlayers());
@@ -122,8 +131,18 @@ public class RoomService {
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        if(gameRoom.getRoomStatus() != RoomStatus.WAITING)
-            throw new RoomNotWaitingException(("Cannot Join Room, Room may got started"));
+        boolean fishpondRejoin = false;
+        if (gameRoom.getRoomStatus() != RoomStatus.WAITING) {
+            fishpondRejoin = "fishpond".equals(gameRoom.getGame().getSlug())
+                    && gameRoom.getRoomStatus() == RoomStatus.IN_PROGRESS
+                    && fishpondGameService.canRejoin(roomCode, user.getUserId());
+
+            if (!fishpondRejoin) {
+                throw new RoomNotWaitingException(
+                        "You can no longer join this started game"
+                );
+            }
+        }
 
         int currentPlayers = roomPlayerRepository.countByRoom_RoomCode(gameRoom.getRoomCode());
 
@@ -140,11 +159,16 @@ public class RoomService {
         );
         RoomPlayer savedRoomPlayer = roomPlayerRepository.save(roomPlayer);
 
+        if (fishpondRejoin) {
+            fishpondGameService.playerRejoined(roomCode, user);
+        }
+
         RoomResponse response = new RoomResponse();
         response.setRoomId(gameRoom.getRoomId());
         response.setRoomCode(gameRoom.getRoomCode());
         response.setGameId(gameRoom.getGame().getGameId());
         response.setGameName(gameRoom.getGame().getName());
+        response.setGameSlug(gameRoom.getGame().getSlug());
         response.setHostUsername(gameRoom.getHost().getUsername());
         response.setRoomStatus(gameRoom.getRoomStatus());
         response.setMaxPlayers(gameRoom.getMaxPlayers());
@@ -157,7 +181,7 @@ public class RoomService {
         );
 
         messagingTemplate.convertAndSend(
-                "/topic/rooms/"+roomCode,
+            "/topic/room/"+roomCode,
                 event
         );
         return response;
@@ -176,8 +200,9 @@ public class RoomService {
                 .orElseThrow(()-> new PlayerNotInRoomException("you are not in the room"));
 
         roomPlayerRepository.delete(roomPlayer);
+        boolean wasHost = user.getUserId().equals(gameRoom.getHost().getUserId());
 
-        if(user.getUserId().equals(gameRoom.getHost().getUserId())){
+        if(wasHost){
 
             int remainingPlayers = roomPlayerRepository.countByRoom_RoomCode(roomCode);
             if(remainingPlayers > 0){
@@ -186,16 +211,28 @@ public class RoomService {
 
                 gameRoom.changeHost(earliestRoomPlayer.getUser());
             }
-            else{
+            else if (gameRoom.getRoomStatus() == RoomStatus.WAITING) {
                 gameRoomRepository.delete(gameRoom);
                 roomDeleted = true;
             }
         }
 
+            gameLifecycleService.playerLeft(
+                gameRoom,
+                user,
+                wasHost && !roomDeleted ? gameRoom.getHost() : null
+            );
+            fishpondGameService.playerLeft(
+                gameRoom,
+                user,
+                wasHost && !roomDeleted ? gameRoom.getHost() : null
+            );
+
         if(!roomDeleted){
             RoomResponse roomResponse = new RoomResponse();
 
             roomResponse.setGameId(gameRoom.getGame().getGameId());
+            roomResponse.setGameSlug(gameRoom.getGame().getSlug());
             roomResponse.setRoomCode(gameRoom.getRoomCode());
             roomResponse.setRoomStatus(gameRoom.getRoomStatus());
             roomResponse.setGameName(gameRoom.getGame().getName());
@@ -211,7 +248,7 @@ public class RoomService {
             );
 
             messagingTemplate.convertAndSend(
-                    "/topic/rooms/"+roomCode,
+                    "/topic/room/"+roomCode,
                     event
             );
         }
@@ -222,7 +259,7 @@ public class RoomService {
             );
 
             messagingTemplate.convertAndSend(
-                    "/topic/rooms/"+roomCode,
+                    "/topic/room/"+roomCode,
                     event
             );
         }
@@ -262,6 +299,7 @@ public class RoomService {
         RoomResponse roomResponse = new RoomResponse();
         roomResponse.setRoomId(gameRoom.getRoomId());
         roomResponse.setGameId(gameRoom.getGame().getGameId());
+        roomResponse.setGameSlug(gameRoom.getGame().getSlug());
         roomResponse.setRoomStatus(gameRoom.getRoomStatus());
         roomResponse.setPlayerCount(roomPlayerRepository.countByRoom_RoomCode(roomCode));
         roomResponse.setRoomCode(gameRoom.getRoomCode());

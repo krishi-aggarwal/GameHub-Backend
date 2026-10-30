@@ -5,6 +5,7 @@ import com.gamehub.domain.user.User;
 import com.gamehub.game.deception.domain.*;
 import com.gamehub.game.deception.dto.NightActionRequest;
 import com.gamehub.game.deception.dto.NightActivityResponse;
+import com.gamehub.game.exception.GameRuleViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,7 +38,7 @@ public class NightActionService {
                         .get(user.getUserId());
 
         if (currentPlayer == null) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Player not found in game"
             );
         }
@@ -47,7 +48,7 @@ public class NightActionService {
         // -------------------------------------------------
 
         if (!currentPlayer.isAlive()) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Dead players cannot perform actions"
             );
         }
@@ -59,7 +60,7 @@ public class NightActionService {
         if (gameSession.getGamePhase()
                 != GamePhase.NIGHT) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Night actions are only allowed during NIGHT phase"
             );
         }
@@ -72,7 +73,7 @@ public class NightActionService {
                 request == null ||
                         request.getTargetUserId() == null
         ) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Target player is required"
             );
         }
@@ -85,7 +86,7 @@ public class NightActionService {
                         .get(targetUserId);
 
         if (targetPlayer == null) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Target player not found"
             );
         }
@@ -95,7 +96,7 @@ public class NightActionService {
         // -------------------------------------------------
 
         if (!targetPlayer.isAlive()) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Cannot target a dead player"
             );
         }
@@ -111,7 +112,7 @@ public class NightActionService {
                 currentPlayer.getUserId().equals(targetUserId)
                         && action != NightAction.PROTECT
         ) {
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Player cannot target themselves"
             );
         }
@@ -178,7 +179,7 @@ public class NightActionService {
                         role !=
                                 DeceptionRole.PREDATOR
                 ) {
-                    throw new RuntimeException(
+                    throw new GameRuleViolationException(
                             "Only Predators can perform ELIMINATE action"
                     );
                 }
@@ -190,7 +191,7 @@ public class NightActionService {
                         role !=
                                 DeceptionRole.DOCTOR
                 ) {
-                    throw new RuntimeException(
+                    throw new GameRuleViolationException(
                             "Only Doctor can perform PROTECT action"
                     );
                 }
@@ -202,7 +203,7 @@ public class NightActionService {
                         role !=
                                 DeceptionRole.DETECTIVE
                 ) {
-                    throw new RuntimeException(
+                    throw new GameRuleViolationException(
                             "Only Detective can perform INVESTIGATE action"
                     );
                 }

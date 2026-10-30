@@ -20,6 +20,14 @@ public class RoleAssignmentService {
 
         int totalPlayers = gamePlayerList.size();
         Set<DeceptionRole> enabledRoles = deceptionGameConfig.getEnabledRoles();
+
+        if (enabledRoles.contains(DeceptionRole.PREDATOR)
+            || enabledRoles.contains(DeceptionRole.INNOCENT)) {
+            throw new InvalidRoleConfigurationException(
+                "Predator and Innocent roles are assigned automatically"
+            );
+        }
+
         int predatorCount = 0 , doctorCount = 0 , detectiveCount = 0 , innocentCount = 0;
         if(totalPlayers <= 5){
             predatorCount = 1;
@@ -41,6 +49,12 @@ public class RoleAssignmentService {
         if(enabledRoles.contains(DeceptionRole.DETECTIVE)){
             detectiveCount++;
             rolePool.put(DeceptionRole.DETECTIVE,detectiveCount);
+        }
+
+        if (predatorCount + doctorCount + detectiveCount >= totalPlayers) {
+            throw new InvalidRoleConfigurationException(
+                    "Selected special roles leave no room for an Innocent player"
+            );
         }
 
         innocentCount = totalPlayers - (predatorCount + doctorCount + detectiveCount);

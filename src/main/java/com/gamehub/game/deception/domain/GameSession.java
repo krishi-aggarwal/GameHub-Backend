@@ -2,6 +2,8 @@
         package com.gamehub.game.deception.domain;
 
 import com.gamehub.domain.room.GameRoom;
+import com.gamehub.domain.user.User;
+import com.gamehub.game.exception.GameRuleViolationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -164,6 +166,30 @@ public class GameSession {
         );
     }
 
+        public GamePlayer markPlayerLeft(Long userId) {
+                GamePlayer player = players.get(userId);
+                if (player == null || player.isLeft()) {
+                        return null;
+                }
+
+                player.leaveGame();
+                nightActions.remove(userId);
+                votes.remove(userId);
+                votes.entrySet().removeIf(
+                                entry -> userId.equals(entry.getValue().getTargetUserId())
+                );
+                return player;
+        }
+
+        public void changeHost(User host) {
+                if (host == null) {
+                        return;
+                }
+
+                hostUserId = host.getUserId();
+                hostUsername = host.getUsername();
+        }
+
 
     public void recordNightAction(
             Long userId,
@@ -173,7 +199,7 @@ public class GameSession {
 
         if (nightActions.containsKey(userId)) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Player has already submitted a night action"
             );
         }
@@ -252,7 +278,7 @@ public class GameSession {
 
         if (gamePhase != GamePhase.DAY) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Voting can only start during DAY phase"
             );
         }
@@ -269,7 +295,7 @@ public class GameSession {
 
         if (votes.containsKey(voterUserId)) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Player has already voted"
             );
         }

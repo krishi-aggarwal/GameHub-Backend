@@ -84,6 +84,24 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler({GameRuleViolationException.class, IllegalArgumentException.class})
+    public ResponseEntity<ErrorResponse> handleGameRuleViolation(
+            RuntimeException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getMessage() == null
+                ? "The requested game action is invalid."
+                : ex.getMessage();
+        ErrorResponse errorResponse = new ErrorResponse(
+                message,
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI(),
+                message
+        );
+
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
@@ -112,7 +130,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidPlayerRange(InvalidPlayerRangeException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
                 "Invalid Player Range",
-                410,
+                400,
                 request.getRequestURI(),
                 "Minimum players cannot be greater than maximum players"
         );
@@ -124,12 +142,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGameNotExists(GameNotExistsException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
                 "Game not Exists",
-                410,
+                404,
                 request.getRequestURI(),
                 "Game not Found!"
         );
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(RoomNotExistsException.class)
@@ -147,7 +165,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRoomNotWaiting(RoomNotWaitingException ex , HttpServletRequest request){
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getMessage(),
-                410,
+                400,
                 request.getRequestURI(),
                 "Cant join Room"
         );
@@ -158,7 +176,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRoomFull(RoomFullException ex , HttpServletRequest req){
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getMessage(),
-                410,
+                400,
                 req.getRequestURI(),
                 "Cant join room"
         );
@@ -173,7 +191,7 @@ public class GlobalExceptionHandler {
     ){
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getMessage(),
-                410,
+                400,
                 request.getRequestURI(),
                 "Cant Join Room"
         );
@@ -189,7 +207,7 @@ public class GlobalExceptionHandler {
     ){
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getMessage(),
-                410,
+                400,
                 request.getRequestURI(),
                 "Player not in the Room"
         );
@@ -218,7 +236,7 @@ public class GlobalExceptionHandler {
     ){
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getMessage(),
-                410,
+                400,
                 request.getRequestURI(),
                 "Insufficient Players to Start Game"
         );
@@ -281,7 +299,7 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 "GameSessionNotFound"
         );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
 

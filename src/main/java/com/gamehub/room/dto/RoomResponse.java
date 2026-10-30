@@ -10,6 +10,7 @@ public class RoomResponse {
     private String roomCode;
     private Long gameId;
     private String gameName;
+    private String gameSlug;
     private String hostUsername;
     private RoomStatus roomStatus;
     private int maxPlayers;
@@ -50,6 +51,14 @@ public class RoomResponse {
 
     public String getGameName() {
         return gameName;
+    }
+
+    public String getGameSlug() {
+        return gameSlug;
+    }
+
+    public void setGameSlug(String gameSlug) {
+        this.gameSlug = gameSlug;
     }
 
     public void setGameName(String gameName) {

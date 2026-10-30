@@ -21,4 +21,20 @@ public class GameSessionRegistry {
     public GameSession retrieveSession(UUID sessionId){
         return gameSessionMap.get(sessionId);
     }
+
+    public GameSession retrieveSessionByRoomCode(String roomCode) {
+        return gameSessionMap.values().stream()
+                .filter(session -> session.getGameRoom() != null)
+                .filter(session -> roomCode.equals(session.getGameRoom().getRoomCode()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void removeSessionsByRoomCode(String roomCode) {
+        gameSessionMap.entrySet().removeIf(
+                entry -> roomCode.equals(
+                        entry.getValue().getGameRoom().getRoomCode()
+                )
+        );
+    }
 }

@@ -3,6 +3,7 @@ package com.gamehub.game.deception.service;
 import com.gamehub.domain.user.User;
 import com.gamehub.game.deception.domain.*;
 import com.gamehub.game.deception.dto.VoteRequest;
+import com.gamehub.game.exception.GameRuleViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -20,6 +21,74 @@ public class VotingService {
     ) {
         this.winConditionService = winConditionService;
         this.gameEventService = gameEventService;
+    }
+
+
+    /**
+     * Starts the voting phase.
+     *
+     * This is intentionally a separate operation because
+     * the HOST controls when discussion ends and voting begins.
+     */
+    public String startVoting(
+            GameSession gameSession,
+            User user
+    ) {
+
+        // -----------------------------------------
+        // 1. Validate current phase
+        // -----------------------------------------
+
+        if (gameSession.getGamePhase()
+                != GamePhase.DAY) {
+
+            throw new GameRuleViolationException(
+                    "Voting can only be started during DAY phase"
+            );
+        }
+
+
+        // -----------------------------------------
+        // 2. Validate host
+        // -----------------------------------------
+
+        if (!gameSession.getHostUserId()
+                .equals(user.getUserId())) {
+
+            throw new GameRuleViolationException(
+                    "Only the host can start voting"
+            );
+        }
+
+
+        // -----------------------------------------
+        // 3. Clear previous votes
+        // -----------------------------------------
+
+        gameSession.getVotes().clear();
+
+
+        // -----------------------------------------
+        // 4. Change phase
+        // -----------------------------------------
+
+        gameSession.setGamePhase(
+                GamePhase.VOTING
+        );
+
+
+        // -----------------------------------------
+        // 5. Notify all players
+        // -----------------------------------------
+
+        gameEventService.publish(
+                gameSession,
+                GameEventType.VOTING_STARTED,
+                gameSession.getRoundNumber()
+        );
+
+
+        return "Voting started";
     }
 
 
@@ -42,7 +111,7 @@ public class VotingService {
         if (gameSession.getGamePhase()
                 != GamePhase.VOTING) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Voting is not currently active"
             );
         }
@@ -58,7 +127,7 @@ public class VotingService {
 
         if (voter == null) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Player not found in game"
             );
         }
@@ -70,7 +139,7 @@ public class VotingService {
 
         if (!voter.isAlive()) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Dead players cannot vote"
             );
         }
@@ -83,7 +152,7 @@ public class VotingService {
         if (request == null ||
                 request.getTargetUserId() == null) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Vote target is required"
             );
         }
@@ -99,7 +168,7 @@ public class VotingService {
 
         if (target == null) {
 
-            throw new RuntimeException(
+            throw new GameRuleViolationException(
                     "Target player not found"
             );
         }
@@ -107,14 +176,14 @@ public class VotingService {
 
         if (!target.isAlive()) {
 
-            throw new RuntimeException(
+                        throw new GameRuleViolationException(
                     "Cannot vote for a dead player"
             );
         }
 
 
         // -----------------------------------------
-        // 5. Record vote
+        // 5. Record / update vote
         // -----------------------------------------
 
         gameSession.recordVote(
@@ -139,8 +208,7 @@ public class VotingService {
 
 
         // -----------------------------------------
-        // 7. Resolve automatically when everyone
-        //    alive has voted
+        // 7. Resolve when everyone alive has voted
         // -----------------------------------------
 
         if (gameSession.getVotes().size()
@@ -154,6 +222,20 @@ public class VotingService {
 
         return "Vote submitted";
     }
+
+        public void resolveAfterPlayerLeft(GameSession gameSession) {
+                if (gameSession.getGamePhase() != GamePhase.VOTING) {
+                        return;
+                }
+
+                long livingPlayers = gameSession.getPlayers().values().stream()
+                                .filter(GamePlayer::isAlive)
+                                .count();
+
+                if (gameSession.getVotes().size() >= livingPlayers) {
+                        resolveVoting(gameSession);
+                }
+        }
 
 
     /**
@@ -237,7 +319,6 @@ public class VotingService {
             );
 
 
-            // Notify all players.
             gameEventService.publish(
                     gameSession,
                     GameEventType.PLAYER_ELIMINATED,
@@ -247,7 +328,7 @@ public class VotingService {
 
 
         // -----------------------------------------
-        // Notify that voting has resolved
+        // Notify voting resolved
         // -----------------------------------------
 
         gameEventService.publish(
@@ -269,7 +350,9 @@ public class VotingService {
         // -----------------------------------------
 
         boolean gameOver =
-                winConditionService.checkWinCondition(gameSession);
+                winConditionService.checkWinCondition(
+                        gameSession
+                );
 
 
         if (gameOver) {
@@ -285,13 +368,12 @@ public class VotingService {
 
 
         // -----------------------------------------
-        // No winner → start next night
+        // Start next night
         // -----------------------------------------
 
         gameSession.startNextNight();
 
 
-        // Notify all clients.
         gameEventService.publish(
                 gameSession,
                 GameEventType.NIGHT_STARTED,
